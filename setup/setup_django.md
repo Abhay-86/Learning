@@ -1,4 +1,3 @@
-Here’s a clean `README.md` based on your command sequence:
 
 ````markdown
 # Django Backend Setup
