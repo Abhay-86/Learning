@@ -1,0 +1,32 @@
+# 🐍 Python / Django
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+
+# 🧱 Virtual environment (don’t commit your venv)
+env/
+venv/
+
+# 🗃️ Local database / data directories
+postgres_data/
+
+# 🧩 IDE and editor files
+.vscode/
+.idea/
+
+# 🪶 macOS system files
+.DS_Store
+
+# 📦 Node-related (if you also use frontend JS)
+node_modules/
+build/
+dist/
+
+# 🧰 Django static and media (generated files)
+staticfiles/
+media/
+
+.env
