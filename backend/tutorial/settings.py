@@ -28,6 +28,25 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=Csv())
 CORS_ALLOW_ALL_ORIGINS = True
 
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_CREDENTIALS = True  # allows cookies/session
+
+# Optional (for API testing)
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
 
 
 # Application definition
@@ -48,6 +67,7 @@ THIRD_PARTY_APPS = [
 
 MY_APPS = [
     'tutorial',
+    'accounts',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + MY_APPS
