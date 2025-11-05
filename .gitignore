@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 *.sqlite3
 *.log
+migrations/
 
 # 🧱 Virtual environment (don’t commit your venv)
 env/
