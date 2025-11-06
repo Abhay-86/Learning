@@ -8,18 +8,20 @@ class RegisterSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     confirm_password = serializers.CharField(write_only=True, required=True)
+    role = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
         fields = (
-                'username',
-                'password',
-                'confirm_password',
-                'email',
-                'first_name',
-                'last_name',
-                'phone_number',
-            )
+            'email',
+            'password',
+            'confirm_password',
+            'first_name',
+            'last_name',
+            'phone_number',
+            'role',
+        )
+
     def validate(self, attrs):
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError({"password": "Password fields didn't match."})
@@ -28,49 +30,64 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         phone_number = validated_data.pop('phone_number', None)
         validated_data.pop('confirm_password', None)
+        email = validated_data.get('email')
+
+        # generate username from email
+        username = email.split('@')[0]
+
         user = User.objects.create_user(
-            username=validated_data['username'],
+            username=username,
             password=validated_data['password'],
-            email=validated_data.get('email', ''),
+            email=email,
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
             is_active=True
         )
+
         CustomUser.objects.create(
             user=user,
             phone_number=phone_number,
-            is_verified=False
+            is_verified=False,
+            role='USER'
         )
+
         return user
     
 class UserSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(source='custom_user.phone_number', read_only=True)
+    role = serializers.CharField(source='custom_user.role', read_only=True)
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone_number')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone_number','role')
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
-        username = attrs.get('username')
+        email = attrs.get('email')
         password = attrs.get('password')
 
-        if not username or not password:
-            raise serializers.ValidationError("Both username and password are required.")
+        if not email or not password:
+            raise serializers.ValidationError("Both email and password are required.")
         # exsistence of user shouldn't be checked here, moved as this will releve the all the user before 
         # But that’s actually less secure, because it reveals to an attacker which usernames exist in your system (called user enumeration).
         # if not User.objects.filter(username=username).exists():
             # raise serializers.ValidationError("User does not exist.")
 
-        user = authenticate(username=username, password=password)
+        try:
+            user_obj = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or password.")
+
+        # Authenticate using username internally
+        user = authenticate(username=user_obj.username, password=password)
 
         if not user:
-            raise serializers.ValidationError("Invalid username or password.")
-        
+            raise serializers.ValidationError("Invalid email or password.")
+
         if not user.is_active:
             raise serializers.ValidationError("User account is disabled.")
-        
+
         attrs['user'] = user
         return attrs
