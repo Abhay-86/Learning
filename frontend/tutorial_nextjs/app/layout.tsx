@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/navbar";
 import { ThemeProvider } from "@/components/theme-provider"; 
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,8 +37,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <AuthProvider>
           <Navbar />
           {children}
+          </AuthProvider>
+
         </ThemeProvider>
       </body>
     </html>
