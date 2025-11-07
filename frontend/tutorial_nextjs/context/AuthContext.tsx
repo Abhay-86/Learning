@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { login, userProfile, refreshToken, logout } from "@/services/auth/authApi";
-import { User, AuthContextType, LoginPayload } from "@/types/types";
+import { User, AuthContextType, LoginPayload, UserRole } from "@/types/types";
+import { roleUtils } from "@/lib/roleUtils";
 
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,8 +58,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Role-based access methods
+  const hasRole = (role: UserRole | UserRole[]): boolean => {
+    if (!user) return false;
+    if (Array.isArray(role)) {
+      return role.includes(user.role);
+    }
+    return roleUtils.hasRole(user.role, role);
+  };
+
+  const isAdmin = (): boolean => {
+    if (!user) return false;
+    return roleUtils.isAdmin(user.role);
+  };
+
+  const isManager = (): boolean => {
+    if (!user) return false;
+    return roleUtils.isManagerOrAbove(user.role);
+  };
+
+  const canAccess = (requiredRole: UserRole): boolean => {
+    if (!user) return false;
+    return roleUtils.canAccess(user.role, requiredRole);
+  };
+
 return (
-    <AuthContext.Provider value={{ user, loading, loginUser, logoutUser }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      loginUser, 
+      logoutUser,
+      hasRole,
+      isAdmin,
+      isManager,
+      canAccess
+    }}>
       {children}
     </AuthContext.Provider>
   );

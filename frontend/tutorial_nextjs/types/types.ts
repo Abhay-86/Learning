@@ -1,3 +1,5 @@
+export type UserRole = 'ADMIN' | 'MANAGER' | 'USER';
+
 export interface User {
   id: number;
   username: string;
@@ -5,7 +7,7 @@ export interface User {
   first_name: string;
   last_name: string;
   phone_number: string;
-  role: string;
+  role: UserRole;
 }
 
 export interface LoginPayload {
@@ -18,6 +20,10 @@ export interface AuthContextType {
   loading: boolean;
   loginUser: (loginPayload: LoginPayload) => Promise<void>;
   logoutUser: () => void;
+  hasRole: (role: UserRole | UserRole[]) => boolean;
+  isAdmin: () => boolean;
+  isManager: () => boolean;
+  canAccess: (requiredRole: UserRole) => boolean;
 }
 
 export interface RegisterPayload {
