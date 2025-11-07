@@ -1,10 +1,22 @@
 from django.urls import path
-from . import views
+from .views import (
+    RegisterView,
+    LoginView,
+    ProfileView,
+    CookieTokenRefreshView,
+    LogoutView,
+    SendOTPEmailView,   
+    VerifyOTPEmailView,
+)
+
 
 urlpatterns = [
-    path('register/', views.RegisterView.as_view(), name='register'),
-    path('login/', views.LoginView.as_view(), name='login'),
-    path('profile/', views.ProfileView.as_view(), name='profile'),
-    path('refresh/', views.CookieTokenRefreshView.as_view(), name='token_refresh'),
-    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('register/', RegisterView.as_view(), name='register'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('profile/', ProfileView.as_view(), name='profile'),
+    path('refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('send-email/', SendOTPEmailView.as_view(), name='send-email'),
+    path('verify-email/', VerifyOTPEmailView.as_view(), name='verify-email'),
 ]
+

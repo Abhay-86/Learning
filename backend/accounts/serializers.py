@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import CustomUser
+from .models import CustomUser, EmailOTP
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
@@ -91,3 +91,58 @@ class LoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+class SendOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+
+    def create(self, validated_data):
+        email = validated_data["email"]
+        user = User.objects.get(email=email)
+        otp_code = EmailOTP.generate_otp()
+        EmailOTP.objects.create(user=user, otp=otp_code)
+
+        # send the OTP email
+        from django.core.mail import send_mail
+        send_mail(
+            subject="Your OTP Code",
+            message=f"Your verification code is {otp_code}",
+            from_email="abhay.singh@auraml.com",
+            recipient_list=[email],
+        )
+        return {"message": "OTP sent successfully!"}
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+
+    def validate(self, data):
+        email = data.get("email")
+        otp = data.get("otp")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found")
+
+        otp_entry = EmailOTP.objects.filter(user=user, otp=otp, is_used=False).last()
+        if not otp_entry:
+            raise serializers.ValidationError("Invalid OTP")
+
+        if otp_entry.is_expired():
+            raise serializers.ValidationError("OTP expired")
+
+        otp_entry.is_used = True
+        otp_entry.save()
+
+        # mark verified
+        custom_user = user.custom_user
+        custom_user.is_verified = True
+        custom_user.save()
+
+        return {"message": "Email verified successfully!"}

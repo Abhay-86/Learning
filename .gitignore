@@ -31,3 +31,8 @@ staticfiles/
 media/
 
 .env
+
+/Temp
+
+/Credentials
+

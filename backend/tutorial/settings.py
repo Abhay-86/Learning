@@ -70,6 +70,7 @@ THIRD_PARTY_APPS = [
 MY_APPS = [
     'tutorial',
     'accounts',
+    'emails'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + MY_APPS
@@ -206,3 +207,11 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'SIGNING_KEY': SECRET_KEY,
 }
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="abhay.singh@auraml.com")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="vilvbzcxzmviouwl")  # app password, not Gmail login
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
