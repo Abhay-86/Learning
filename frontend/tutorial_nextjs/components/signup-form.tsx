@@ -16,7 +16,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { registerUser } from "@/services/auth/authApi";
+import { registerUser, sendOTP } from "@/services/auth/authApi";
 import { useRouter } from "next/navigation";
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
@@ -44,8 +44,16 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     setMessage("");
 
     try {
+      // Step 1: Register the user
       await registerUser(formData);
-      setMessage("🎉 Account created successfully!");
+      setMessage("🎉 Account created successfully! Sending verification email...");
+      
+      // Step 2: Automatically send OTP to the registered email
+      await sendOTP({ email: formData.email });
+      setMessage("📧 Verification code sent! Redirecting to verification page...");
+      
+      // Step 3: Clear form data
+      const userEmail = formData.email;
       setFormData({
         first_name: "",
         last_name: "",
@@ -54,11 +62,26 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         password: "",
         confirm_password: "",
       });
-      setMessage("🎉 Account created successfully!");
-      setTimeout(() => router.push("/auth/login"), 1500);
+      
+      // Step 4: Redirect to verification page with email pre-filled
+      setTimeout(() => {
+        router.push(`/auth/verify-email?email=${encodeURIComponent(userEmail)}`);
+      }, 1500);
     } catch (err: any) {
       console.error(err);
-      setMessage(err.response?.data?.message || "Something went wrong!");
+      // Check if registration succeeded but OTP sending failed
+      if (err.response?.status === 400 && err.response?.data?.email) {
+        // Registration failed
+        setMessage(err.response?.data?.message || "Registration failed!");
+      } else if (formData.email && err.response?.data?.error) {
+        // Registration succeeded but OTP sending failed
+        setMessage("⚠️ Account created but failed to send verification email. You can verify manually.");
+        setTimeout(() => {
+          router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+        }, 2000);
+      } else {
+        setMessage("Something went wrong! Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -145,7 +168,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
             <Field>
               <Button type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create Account"}
+                {loading ? "Creating Account..." : "Create Account"}
               </Button>
               <FieldDescription className="px-6 text-center mt-2">
                 Already have an account?{" "}
@@ -157,7 +180,15 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
           </FieldGroup>
 
           {message && (
-            <p className="text-center mt-4 text-sm text-green-600">{message}</p>
+            <div className={`text-center mt-4 text-sm ${
+              message.includes('🎉') || message.includes('📧') 
+                ? 'text-green-600' 
+                : message.includes('⚠️') 
+                ? 'text-yellow-600' 
+                : 'text-red-600'
+            }`}>
+              {message}
+            </div>
           )}
         </form>
       </CardContent>

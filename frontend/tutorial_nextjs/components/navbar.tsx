@@ -14,19 +14,56 @@ import { ModeToggle } from "@/components/toggle";
 import { MenuIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { roleUtils } from "@/lib/roleUtils";
+import { UserRole } from "@/types/types";
+
+interface NavigationLink {
+  name: string;
+  href: string;
+  role: UserRole;
+}
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, loading, logoutUser } = useAuth();
+  const { user, loading, logoutUser, isAdmin, isManager, canAccess } = useAuth();
 
   const publicLinks = [{ name: "Home", href: "/" }];
-  const protectedLinks = [
-    { name: "Docs", href: "/docs" },
-    { name: "Components", href: "/components" },
-    { name: "Pricing", href: "/pricing" },
-    { name: "Contact", href: "/contact" },
-  ];
+  
+  // Role-based navigation links
+  const getNavigationLinks = (): NavigationLink[] => {
+    if (!user) return [];
+
+    const links: NavigationLink[] = [
+      { name: "Dashboard", href: "/product/dashboard", role: "USER" },
+    ];
+
+    // Manager links
+    if (isManager()) {
+      links.push(
+        { name: "Team", href: "/manager/team", role: "MANAGER" },
+        { name: "Reports", href: "/manager/reports", role: "MANAGER" }
+      );
+    }
+
+    // Admin links
+    if (isAdmin()) {
+      links.push(
+        { name: "Admin Panel", href: "/admin", role: "ADMIN" },
+        { name: "Users", href: "/admin/users", role: "ADMIN" }
+      );
+    }
+
+    // User profile links (all authenticated users)
+    links.push(
+      { name: "Profile", href: "/profile", role: "USER" },
+      { name: "Settings", href: "/settings", role: "USER" }
+    );
+
+    return links.filter(link => canAccess(link.role));
+  };
+
+  const navigationLinks = getNavigationLinks();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-lg">
@@ -52,7 +89,7 @@ export function Navbar() {
             ))}
 
             {user &&
-              protectedLinks.map((link) => (
+              navigationLinks.map((link) => (
                 <NavigationMenuItem key={link.name}>
                   <NavigationMenuLink
                     asChild
@@ -81,7 +118,16 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <span className="text-sm">Hi, {user?.username}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Hi, {user?.username}</span>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  user?.role === 'ADMIN' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                  user?.role === 'MANAGER' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                  'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                }`}>
+                  {roleUtils.getRoleDisplayName(user?.role || 'USER')}
+                </span>
+              </div>
               <Button variant="outline" size="sm" onClick={logoutUser}>
                 Logout
               </Button>
@@ -114,7 +160,7 @@ export function Navbar() {
               </Link>
             ))}
             {user &&
-              protectedLinks.map((link) => (
+              navigationLinks.map((link) => (
                 <Link
                   key={link.name}
                   href={link.href}
