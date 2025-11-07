@@ -28,3 +28,16 @@ export interface RegisterPayload {
   last_name: string;
   phone_number: string;
 }
+
+export interface SendOTPPayload {
+  email: string;
+}
+
+export interface VerifyOTPPayload {
+  email: string;
+  otp: string;
+}
+
+export interface OTPResponse {
+  message: string;
+}

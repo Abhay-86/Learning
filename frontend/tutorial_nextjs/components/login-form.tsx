@@ -103,6 +103,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   <a href="/auth/signup" className="underline">
                     Sign up
                   </a>
+                  <br />
+                  Need to verify your email?{" "}
+                  <a href="/auth/verify-email" className="underline">
+                    Verify here
+                  </a>
                 </FieldDescription>
               </Field>
             </FieldGroup>

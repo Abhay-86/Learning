@@ -1,5 +1,5 @@
 import axiosInstance from "@/utils/axiosInstance";
-import { User, LoginPayload, RegisterPayload } from "@/types/types";
+import { User, LoginPayload, RegisterPayload, SendOTPPayload, VerifyOTPPayload, OTPResponse } from "@/types/types";
 
 export async function login(loginPayload: LoginPayload): Promise<User> {
     const response = await axiosInstance.post("accounts/login/", loginPayload);
@@ -22,5 +22,15 @@ export async function registerUser(registerPayload: RegisterPayload): Promise<Us
 
 export async function logout(): Promise<void> {
     await axiosInstance.post("accounts/logout/");
+}
+
+export async function sendOTP(sendOTPPayload: SendOTPPayload): Promise<OTPResponse> {
+    const response = await axiosInstance.post("accounts/send-email/", sendOTPPayload);
+    return response.data;
+}
+
+export async function verifyOTP(verifyOTPPayload: VerifyOTPPayload): Promise<OTPResponse> {
+    const response = await axiosInstance.post("accounts/verify-email/", verifyOTPPayload);
+    return response.data;
 }
 
