@@ -6,11 +6,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
+from django.core.mail import send_mail
 
 from .serializers import (
     RegisterSerializer, 
     UserSerializer,
-    LoginSerializer
+    LoginSerializer,
+    SendOTPSerializer,
+    VerifyOTPSerializer,
 )
 from .models import CustomUser
 
@@ -69,6 +72,8 @@ class LoginView(APIView):
             response =  Response({
                 "message": "Login successful.",
                 "user": UserSerializer(user).data,
+                "access": access_token,
+                "refresh": refresh_token
             }, status=status.HTTP_200_OK)
         
             response.set_cookie(
@@ -153,3 +158,27 @@ class LogoutView(APIView):
                 pass
 
         return response
+    
+
+class SendOTPEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(request=SendOTPSerializer, responses={200: dict})
+    def post(self, request):
+        serializer = SendOTPSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "OTP sent successfully!"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyOTPEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(request=VerifyOTPSerializer, responses={200: dict})
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        if serializer.is_valid():
+            data = serializer.validated_data
+            return Response(data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

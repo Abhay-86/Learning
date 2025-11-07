@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <body style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px; color: #333;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+      <tr>
+        <td style="padding: 30px;">
+          <h2 style="color: #2563eb; margin-bottom: 10px;">Application for {{ job_title }} — {{ name }}</h2>
+
+          <p>Hi {{ hr_name }},</p>
+
+          <p>I hope you’re doing well.</p>
+
+          <p>
+            I’m reaching out to express my interest in the 
+            <strong>{{ job_title }}</strong> position at 
+            <strong>{{ company_name }}</strong>. 
+            I have {{ experience_years }} years of experience in 
+            {{ skills_summary }} and believe my skills align well with your team’s requirements.
+          </p>
+
+          <p>
+            I’ve attached my updated resume for your review and would appreciate the opportunity 
+            to discuss how I can contribute to your organization.
+          </p>
+
+          <p>Thank you for your time and consideration.</p>
+
+          <p style="margin-top: 20px;">Best regards,<br>
+            <strong>{{ name }}</strong><br>
+            📞 {{ phone }}<br>
+            📧 <a href="mailto:{{ email }}" style="color: #2563eb;">{{ email }}</a><br>
+            🔗 <a href="{{ linkedin }}" style="color: #2563eb;">LinkedIn Profile</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
