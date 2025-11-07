@@ -36,7 +36,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
     try {
       await loginUser({ email, password }); 
-      router.push("/dashboard");
+      router.push("/product/dashboard");
     } catch (err: any) {
       setError("Invalid email or password");
     } finally {
