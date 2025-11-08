@@ -16,6 +16,13 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { registerUser, sendOTP } from "@/services/auth/authApi";
 import { useRouter } from "next/navigation";
 
@@ -29,6 +36,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     phone_number: "",
     password: "",
     confirm_password: "",
+    role: "STUDENT",
   });
 
   const [loading, setLoading] = useState(false);
@@ -61,6 +69,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         phone_number: "",
         password: "",
         confirm_password: "",
+        role: "STUDENT",
       });
       
       // Step 4: Redirect to verification page with email pre-filled
@@ -142,6 +151,23 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 placeholder="+91 9876543210"
                 required
               />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="role">Role</FieldLabel>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => setFormData({ ...formData, role: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="STUDENT">Student</SelectItem>
+                  <SelectItem value="PARENT">Parent</SelectItem>
+                  <SelectItem value="TEACHER">Teacher</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Field>
               <FieldLabel htmlFor="password">Password</FieldLabel>

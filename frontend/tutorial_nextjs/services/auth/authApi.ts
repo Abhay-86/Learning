@@ -34,3 +34,13 @@ export async function verifyOTP(verifyOTPPayload: VerifyOTPPayload): Promise<OTP
     return response.data;
 }
 
+export async function getUserProfile(): Promise<any> {
+    const response = await axiosInstance.get("accounts/profile/");
+    return response;
+}
+
+export async function getDashboardData(): Promise<any> {
+    const response = await axiosInstance.get("accounts/dashboard/");
+    return response;
+}
+
