@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { login, userProfile, refreshToken, logout } from "@/services/auth/authApi";
-import { User, AuthContextType, LoginPayload, UserRole } from "@/types/types";
+import { User, AuthContextType, LoginPayload, UserRole, LoginResponse } from "@/types/types";
 import { roleUtils } from "@/lib/roleUtils";
 
 
@@ -42,9 +42,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 //     setUser(loggedInUser);
 //   };
 
-    const loginUser = async (loginPayload: LoginPayload) => {
-        const loggedInUser = await login(loginPayload);
-        setUser(loggedInUser);
+    const loginUser = async (loginPayload: LoginPayload): Promise<LoginResponse> => {
+        const response = await login(loginPayload);
+        setUser(response.user);
+        return response; // Return the full response including user data
     };
 
 

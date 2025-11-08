@@ -35,8 +35,14 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     setLoading(true);
 
     try {
-      await loginUser({ email, password }); 
-      router.push("/product/dashboard");
+      const response = await loginUser({ email, password }); 
+      
+      // Check if profile is complete and redirect accordingly
+      if (response.user.profile_complete) {
+        router.push("/dashboard");
+      } else {
+        router.push("/complete-profile");
+      }
     } catch (err: any) {
       setError("Invalid email or password");
     } finally {

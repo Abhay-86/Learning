@@ -1,7 +1,7 @@
 import axiosInstance from "@/utils/axiosInstance";
-import { User, LoginPayload, RegisterPayload, SendOTPPayload, VerifyOTPPayload, OTPResponse } from "@/types/types";
+import { User, LoginPayload, RegisterPayload, SendOTPPayload, VerifyOTPPayload, OTPResponse, LoginResponse } from "@/types/types";
 
-export async function login(loginPayload: LoginPayload): Promise<User> {
+export async function login(loginPayload: LoginPayload): Promise<LoginResponse> {
     const response = await axiosInstance.post("accounts/login/", loginPayload);
     return response.data;
 }
