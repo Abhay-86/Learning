@@ -3,6 +3,7 @@ from django.db import models
 import random
 from datetime import timedelta
 from django.utils import timezone
+from rest_framework.permissions import BasePermission
 
 # Create your models here.
 class CustomUser(models.Model):
@@ -35,3 +36,12 @@ class EmailOTP(models.Model):
     @staticmethod
     def generate_otp():
         return str(random.randint(100000, 999999))
+
+
+class IsCustomAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and hasattr(request.user, 'custom_user')
+            and request.user.custom_user.role == 'ADMIN'
+        )
