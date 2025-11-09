@@ -13,7 +13,8 @@ services:
       - "5432:5432"
     # Option 1: Mount your own folder for persistence
     volumes:
-      - ~/Documents/Learn/Test/postgres_data:/var/lib/postgresql/data
+      # - ~/Documents/Learn/Test/postgres_data:/var/lib/postgresql/data
+      - ~/Documents/Learn/Test/postgres_data1:/var/lib/postgresql/data
 
     # Option 2: Let Docker manage the storage volume
     # volumes:
