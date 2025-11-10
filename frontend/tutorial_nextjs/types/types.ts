@@ -17,6 +17,8 @@ export interface LoginPayload {
 
 export interface AuthContextType {
   user: User | null;
+  features: any[];
+  // featuresLoading: boolean;
   loading: boolean;
   loginUser: (loginPayload: LoginPayload) => Promise<void>;
   logoutUser: () => void;
@@ -46,4 +48,26 @@ export interface VerifyOTPPayload {
 
 export interface OTPResponse {
   message: string;
+}
+
+export interface Feature {
+  id: number;
+  name: string;
+  code: string;
+  description: string;
+  status: string; 
+}
+
+export interface UserFeature {
+  id: number;
+  feature: Feature;
+  is_active: boolean;
+  activated_on: string; // ISO date string
+  expires_on: string | null; // ISO date string or null
+}
+
+export interface ToggleFeaturePayload {
+  user_id: number;
+  feature_id: number;
+  is_active: boolean;
 }

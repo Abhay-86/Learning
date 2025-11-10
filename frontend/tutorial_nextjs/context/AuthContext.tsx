@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { login, userProfile, refreshToken, logout } from "@/services/auth/authApi";
+import { getUserFeatures } from "@/services/features/featureApi";
 import { User, AuthContextType, LoginPayload, UserRole } from "@/types/types";
 import { roleUtils } from "@/lib/roleUtils";
 
@@ -12,6 +13,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [features, setFeatures] = useState<any[]>([]);
+  // const [featuresLoading, setFeaturesLoading] = useState(true);
   
 
   // Fetch user profile on mount
@@ -36,6 +39,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     init();
   }, []);
 
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      if (!user) {
+        setFeatures([]);
+        // setFeaturesLoading(false);
+        return;
+      }
+      try {
+        // setFeaturesLoading(true);
+        const userFeatures = await getUserFeatures();
+        setFeatures(userFeatures);
+      } catch (err) {
+        console.error("Error fetching features:", err);
+        setFeatures([]);
+      } finally {
+        // setFeaturesLoading(false);
+      }
+    };
+
+    fetchFeatures();
+  }, [user]);
 //   const loginUser = async (username: string, password: string) => {
 //     const loginPayload: LoginPayload = { username, password }; // create object
 //     const loggedInUser = await login(loginPayload); // pass it to API
@@ -85,6 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 return (
     <AuthContext.Provider value={{ 
       user, 
+      features,
       loading, 
       loginUser, 
       logoutUser,
