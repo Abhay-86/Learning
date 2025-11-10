@@ -3,8 +3,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { login, userProfile, refreshToken, logout } from "@/services/auth/authApi";
 import { getUserFeatures } from "@/services/features/featureApi";
-import { User, AuthContextType, LoginPayload, UserRole } from "@/types/types";
+import { User, AuthContextType, LoginPayload, UserRole, UserFeature } from "@/types/types";
 import { roleUtils } from "@/lib/roleUtils";
+import { featureUtils } from "@/lib/featureUtils";
 
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -13,7 +14,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [features, setFeatures] = useState<any[]>([]);
+  const [features, setFeatures] = useState<UserFeature[]>([]);
   // const [featuresLoading, setFeaturesLoading] = useState(true);
   
 
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         // setFeaturesLoading(true);
         const userFeatures = await getUserFeatures();
+        console.log('Fetched features:', userFeatures);
         setFeatures(userFeatures);
       } catch (err) {
         console.error("Error fetching features:", err);
@@ -79,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Logout failed", error);
     } finally {
       setUser(null);
+      setFeatures([]);
     }
   };
 
@@ -106,6 +109,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return roleUtils.canAccess(user.role, requiredRole);
   };
 
+  const hasFeature = (featureCode: string): boolean => {
+      return featureUtils.hasFeatureAccess(features, featureCode);
+    };
+  
+  const hasAnyFeature = (featureCodes: string[]): boolean => {
+      return featureUtils.hasAnyFeatureAccess(features, featureCodes);
+    };
+      
+  const getActiveFeatures = (): UserFeature[] => {
+      return featureUtils.getActiveFeatures(features);
+    };
+  const getAccessibleFeatureCodes = (): string[] => {
+      return featureUtils.getAccessibleFeatureCodes(features);
+    };
+  
+  const shouldRedirectToPayments = (featureCode: string): boolean => {
+      const hasAccess = featureUtils.hasFeatureAccess(features, featureCode);
+      return !hasAccess;
+    };
+  
+  const getFeatureExpiryInfo = (featureCode: string): { hasFeature: boolean; isExpired: boolean; expiresOn: string | null } => {
+      return featureUtils.getFeatureExpiryInfo(features, featureCode);
+    };
+
+
 return (
     <AuthContext.Provider value={{ 
       user, 
@@ -116,7 +144,14 @@ return (
       hasRole,
       isAdmin,
       isManager,
-      canAccess
+      canAccess,
+      // Feature methods
+      hasFeature,
+      hasAnyFeature,
+      getActiveFeatures,
+      getAccessibleFeatureCodes,
+      shouldRedirectToPayments,
+      getFeatureExpiryInfo,
     }}>
       {children}
     </AuthContext.Provider>
