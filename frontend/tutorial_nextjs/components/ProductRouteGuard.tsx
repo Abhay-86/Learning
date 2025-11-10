@@ -90,84 +90,84 @@ export function ProductRouteGuard({
     );
   }
 
-  // If custom fallback provided
-  if (fallbackComponent) {
-    return <>{fallbackComponent}</>;
-  }
+  // // If custom fallback provided
+  // if (fallbackComponent) {
+  //   return <>{fallbackComponent}</>;
+  // }
 
   // Default: Show upgrade prompt with expiry info
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto py-16">
-        <div className="max-w-2xl mx-auto">
-          <Card className="border-2 border-dashed border-muted-foreground/25">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20">
-                <Lock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <CardTitle className="text-2xl mb-2">
-                🔒 {displayName} Access Required
-              </CardTitle>
-              <CardDescription className="text-base">
-                {expiryInfo.hasFeature && expiryInfo.isExpired ? (
-                  <>Your <strong>{displayName}</strong> subscription has expired. Renew to continue using this feature.</>
-                ) : (
-                  <>You need access to <strong>{displayName}</strong> to view this content. Upgrade your plan to unlock this powerful feature!</>
-                )}
-              </CardDescription>
-            </CardHeader>
+  // return (
+  //   <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+  //     <div className="container mx-auto py-16">
+  //       <div className="max-w-2xl mx-auto">
+  //         <Card className="border-2 border-dashed border-muted-foreground/25">
+  //           <CardHeader className="text-center pb-2">
+  //             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20">
+  //               <Lock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+  //             </div>
+  //             <CardTitle className="text-2xl mb-2">
+  //               🔒 {displayName} Access Required
+  //             </CardTitle>
+  //             <CardDescription className="text-base">
+  //               {expiryInfo.hasFeature && expiryInfo.isExpired ? (
+  //                 <>Your <strong>{displayName}</strong> subscription has expired. Renew to continue using this feature.</>
+  //               ) : (
+  //                 <>You need access to <strong>{displayName}</strong> to view this content. Upgrade your plan to unlock this powerful feature!</>
+  //               )}
+  //             </CardDescription>
+  //           </CardHeader>
             
-            <CardContent className="text-center space-y-6">
-              {/* Expiry info */}
-              {expiryInfo.hasFeature && expiryInfo.isExpired && (
-                <div className="bg-red-50 border-red-200 border px-4 py-3 rounded-md">
-                  <p className="text-sm text-red-800">
-                    <strong>Expired:</strong> {new Date(expiryInfo.expiresOn!).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
+  //           <CardContent className="text-center space-y-6">
+  //             {/* Expiry info */}
+  //             {expiryInfo.hasFeature && expiryInfo.isExpired && (
+  //               <div className="bg-red-50 border-red-200 border px-4 py-3 rounded-md">
+  //                 <p className="text-sm text-red-800">
+  //                   <strong>Expired:</strong> {new Date(expiryInfo.expiresOn!).toLocaleDateString()}
+  //                 </p>
+  //               </div>
+  //             )}
 
-              {/* Feature benefits */}
-              <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="font-semibold mb-2 flex items-center justify-center gap-2">
-                  <Zap className="h-4 w-4 text-yellow-500" />
-                  What you'll get with {displayName}:
-                </h4>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  {getFeatureBenefits(requiredFeature).map((benefit, index) => (
-                    <div key={index} className="flex items-center justify-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
-                      {benefit}
-                    </div>
-                  ))}
-                </div>
-              </div>
+  //             {/* Feature benefits */}
+  //             <div className="bg-muted/50 rounded-lg p-4">
+  //               <h4 className="font-semibold mb-2 flex items-center justify-center gap-2">
+  //                 <Zap className="h-4 w-4 text-yellow-500" />
+  //                 What you'll get with {displayName}:
+  //               </h4>
+  //               <div className="text-sm text-muted-foreground space-y-1">
+  //                 {getFeatureBenefits(requiredFeature).map((benefit, index) => (
+  //                   <div key={index} className="flex items-center justify-center gap-2">
+  //                     <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+  //                     {benefit}
+  //                   </div>
+  //                 ))}
+  //               </div>
+  //             </div>
 
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button size="lg" asChild className="group">
-                  <Link href={`/payments?feature=${requiredFeature}&product=${encodeURIComponent(displayName)}`}>
-                    {expiryInfo.hasFeature && expiryInfo.isExpired ? 'Renew Now' : 'Upgrade Now'}
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <Link href="/dashboard">
-                    Back to Dashboard
-                  </Link>
-                </Button>
-              </div>
+  //             {/* Action buttons */}
+  //             <div className="flex flex-col sm:flex-row gap-3 justify-center">
+  //               <Button size="lg" asChild className="group">
+  //                 <Link href={`/payments?feature=${requiredFeature}&product=${encodeURIComponent(displayName)}`}>
+  //                   {expiryInfo.hasFeature && expiryInfo.isExpired ? 'Renew Now' : 'Upgrade Now'}
+  //                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+  //                 </Link>
+  //               </Button>
+  //               <Button variant="outline" size="lg" asChild>
+  //                 <Link href="/dashboard">
+  //                   Back to Dashboard
+  //                 </Link>
+  //               </Button>
+  //             </div>
 
-              {/* Additional info */}
-              <p className="text-xs text-muted-foreground">
-                Questions? <Link href="/contact" className="underline hover:text-foreground">Contact our team</Link> for help choosing the right plan.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
+  //             {/* Additional info */}
+  //             <p className="text-xs text-muted-foreground">
+  //               Questions? <Link href="/contact" className="underline hover:text-foreground">Contact our team</Link> for help choosing the right plan.
+  //             </p>
+  //           </CardContent>
+  //         </Card>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
 }
 
 // Helper function to get feature benefits
@@ -197,7 +197,7 @@ function getFeatureBenefits(featureCode: string): string[] {
       'Data recovery and restoration',
       'Temporal workflow management'
     ],
-    'test': [
+    'Game': [
       'Full testing suite access',
       'Advanced testing tools',
       'Performance monitoring',
@@ -220,6 +220,13 @@ export function CRMRouteGuard({ children, ...props }: Omit<ProductRouteGuardProp
 export function AIBotRouteGuard({ children, ...props }: Omit<ProductRouteGuardProps, 'requiredFeature'>) {
   return (
     <ProductRouteGuard requiredFeature="ai_bot" productName="AI Bot Assistant" {...props}>
+      {children}
+    </ProductRouteGuard>
+  );
+}
+export function EmailServiceRouteGuard({ children, ...props }: Omit<ProductRouteGuardProps, 'requiredFeature'>) {
+  return (
+    <ProductRouteGuard requiredFeature="email_service" productName="Email Service" {...props}>
       {children}
     </ProductRouteGuard>
   );

@@ -81,7 +81,7 @@ export class FeatureUtils {
       'ai_bot': 'AI Bot Assistant',
       'email_service': 'Email Marketing',
       'time_travel': 'Time Travel Analytics',
-      'test': 'Test Environment'
+      // 'test': 'Test Environment'
     };
     return featureNames[featureCode] || featureCode.replace('_', ' ').toUpperCase();
   }

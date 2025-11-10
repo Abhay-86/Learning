@@ -43,7 +43,7 @@ export default function Dashboard() {
   const userProductIds = normalizedProducts.map((p) => p.id);
 
   // Categorize products
-  const activeProducts = allProducts.filter((p) => userProductIds.includes(p.id));
+  const activeProducts = allProducts.filter((p) => userProductIds.includes(p.id) && p.status !== "upcoming");
   const inactiveProducts = allProducts.filter(
     (p) => p.status === "active" && !userProductIds.includes(p.id)
   );
@@ -117,7 +117,7 @@ function ProductSection({ title, products, badge, color, action, disabled }: any
                   <span>{action || "Upcoming..."}</span>
                 ) : action ? (
                   // Inactive product: redirect to payment
-                  <Link href="/payments">{action}</Link>
+                  <Link href={`/product/${product.code}`}>{action}</Link>
                 ) : (
                   // Active product: redirect to product page
                   <Link href={`/product/${product.code}`}>View Product</Link>
