@@ -35,7 +35,7 @@ export function Navbar() {
     if (!user) return [];
 
     const links: NavigationLink[] = [
-      { name: "Dashboard", href: "/product/dashboard", role: "USER" },
+      { name: "Dashboard", href: "/dashboard", role: "USER" },
     ];
 
     // Manager links
@@ -69,7 +69,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-lg">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 md:px-8">
         <Link href="/" className="text-xl font-bold tracking-tight">
-          <span className="text-primary">Product</span>
+          <span className="text-primary">Brand Name</span>
         </Link>
 
         <NavigationMenu className="hidden md:block">
@@ -118,16 +118,16 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">Hi, {user?.username}</span>
-                <span className={`text-xs px-2 py-1 rounded-full ${
+              {/* <div className="flex items-center gap-2"> */}
+                {/* <span className="text-sm">Hi, {user?.username}</span> */}
+                {/* <span className={`text-xs px-2 py-1 rounded-full ${
                   user?.role === 'ADMIN' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
                   user?.role === 'MANAGER' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                   'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                 }`}>
                   {roleUtils.getRoleDisplayName(user?.role || 'USER')}
-                </span>
-              </div>
+                </span> */}
+              {/* </div> */}
               <Button variant="outline" size="sm" onClick={logoutUser}>
                 Logout
               </Button>
