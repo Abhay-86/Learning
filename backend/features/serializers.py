@@ -5,7 +5,7 @@ from .models import Feature, UserFeature
 class FeatureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Feature
-        fields = ['id', 'name', 'code', 'description']
+        fields = ['id', 'name', 'code', 'description', 'status']
 
 
 class UserFeatureSerializer(serializers.ModelSerializer):
