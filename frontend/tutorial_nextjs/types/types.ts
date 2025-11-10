@@ -17,8 +17,7 @@ export interface LoginPayload {
 
 export interface AuthContextType {
   user: User | null;
-  features: any[];
-  // featuresLoading: boolean;
+  features: UserFeature[];             // ✅ Correct type: UserFeature[]
   loading: boolean;
   loginUser: (loginPayload: LoginPayload) => Promise<void>;
   logoutUser: () => void;
@@ -26,6 +25,13 @@ export interface AuthContextType {
   isAdmin: () => boolean;
   isManager: () => boolean;
   canAccess: (requiredRole: UserRole) => boolean;
+  // Feature-based methods
+  hasFeature: (featureCode: string) => boolean;
+  hasAnyFeature: (featureCodes: string[]) => boolean;
+  getActiveFeatures: () => UserFeature[];
+  getAccessibleFeatureCodes: () => string[];
+  shouldRedirectToPayments: (featureCode: string) => boolean;
+  getFeatureExpiryInfo: (featureCode: string) => any;
 }
 
 export interface RegisterPayload {
@@ -55,15 +61,15 @@ export interface Feature {
   name: string;
   code: string;
   description: string;
-  status: string; 
+  status: string; // 'active', 'inactive', 'upcoming', 'deprecated'
 }
 
 export interface UserFeature {
   id: number;
-  feature: Feature;
-  is_active: boolean;
-  activated_on: string; // ISO date string
-  expires_on: string | null; // ISO date string or null
+  feature: Feature;                    // ✅ Nested Feature object
+  is_active: boolean;                  // ✅ Boolean active status  
+  activated_on: string;                // ✅ ISO date string
+  expires_on: string | null;           // ✅ ISO date string or null
 }
 
 export interface ToggleFeaturePayload {
