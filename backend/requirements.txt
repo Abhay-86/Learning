@@ -12,3 +12,4 @@ typing_extensions==4.15.0
 zipp==3.23.0
 drf-spectacular
 razorpay==2.0.0
+qrcode[pil]==8.0
