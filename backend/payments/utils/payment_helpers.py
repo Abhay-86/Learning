@@ -5,6 +5,7 @@ from django.conf import settings
 from .razorpay_client import client as razorpay_client
 from accounts.utils import get_user_phone_number, get_user_full_name
 import json
+from payments.models import PaymentLog, UserWallet
 
 
 def decimal_serializer(obj):
@@ -154,7 +155,6 @@ def calculate_order_expiry():
 
 def log_payment_activity(user, log_type, message, order=None, **kwargs):
     """Helper function to log payment activities"""
-    from ..models import PaymentLog
     
     try:
         # Convert any Decimal objects to float for JSON serialization
@@ -184,7 +184,6 @@ def log_payment_activity(user, log_type, message, order=None, **kwargs):
 
 def get_or_create_user_wallet(user):
     """Get or create user wallet"""
-    from ..models import UserWallet
     
     wallet, created = UserWallet.objects.get_or_create(
         user=user,
