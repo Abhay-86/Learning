@@ -370,21 +370,32 @@ export default function PaymentPage() {
                     className="w-full"
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
-                    Pay with Razorpay
+                    Pay with Razorpay Checkout
                   </Button>
 
-                  <Button 
-                    onClick={handleQRPayment}
-                    variant="outline"
-                    className="w-full"
-                    disabled={!paymentOptions?.qr_code}
-                  >
-                    <QrCode className="mr-2 h-4 w-4" />
-                    Pay with QR Code
-                  </Button>
+                  {paymentOptions?.qr_code?.available ? (
+                    <Button 
+                      onClick={handleQRPayment}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Pay with QR Code
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => window.open(paymentOptions?.payment_link || '#', '_blank')}
+                      variant="outline"
+                      className="w-full"
+                      disabled={!paymentOptions?.payment_link}
+                    >
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Open Payment Link
+                    </Button>
+                  )}
                 </div>
 
-                {paymentOptions?.qr_code?.qr_image_url && (
+                {paymentOptions?.qr_code?.available && paymentOptions.qr_code.qr_image_url ? (
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-2">Or scan QR code:</p>
                     <img 
@@ -394,6 +405,12 @@ export default function PaymentPage() {
                     />
                     <p className="text-xs text-muted-foreground mt-2">
                       QR Status: {paymentOptions.qr_code.status}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      QR Code not available. Please use Razorpay Checkout for secure payment.
                     </p>
                   </div>
                 )}

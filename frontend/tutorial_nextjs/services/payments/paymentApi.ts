@@ -24,12 +24,15 @@ export interface PaymentOptions {
     order_id: string;
     amount: number;
     currency: string;
+    description: string;
   };
-  qr_code?: {
-    qr_code_id: string;
-    qr_image_url: string;
-    status: string;
+  qr_code: {
+    qr_code_id: string | null;
+    qr_image_url: string | null;
+    status: string | null;
+    available: boolean;
   };
+  payment_link?: string;
 }
 
 export interface CreateOrderResponse {
