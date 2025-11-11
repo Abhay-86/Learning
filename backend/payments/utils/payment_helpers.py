@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
 from .razorpay_client import client as razorpay_client
+from accounts.utils import get_user_phone_number, get_user_full_name
 import json
 
 
@@ -11,6 +12,9 @@ def decimal_serializer(obj):
     if isinstance(obj, Decimal):
         return float(obj)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+
 
 
 def create_razorpay_payment_link(amount, order_id, coins_to_credit, user):
@@ -25,9 +29,9 @@ def create_razorpay_payment_link(amount, order_id, coins_to_credit, user):
             'accept_partial': False,
             'description': f'Purchase {coins_to_credit} coins for ₹{amount_float}',
             'customer': {
-                'name': f'{user.first_name} {user.last_name}'.strip() or user.username,
+                'name': get_user_full_name(user),
                 'email': user.email,
-                'contact': getattr(user, 'phone_number', '') or ''
+                'contact': get_user_phone_number(user)
             },
             'notify': {
                 'sms': True,
