@@ -59,8 +59,13 @@ class CreateOrderView(APIView):
                     
                     razorpay_order = razorpay_client.order.create(razorpay_order_data)
                     
-                    # Create Razorpay QR code
-                    qr_result = create_razorpay_qr_code(float(amount), order_id, coins_to_credit, request.user)
+                    # Try to create Razorpay QR code (optional)
+                    qr_result = None
+                    try:
+                        qr_result = create_razorpay_qr_code(float(amount), order_id, coins_to_credit, request.user)
+                    except Exception as qr_error:
+                        print(f"QR Code creation failed: {qr_error}")
+                        # Continue without QR code - Razorpay checkout will still work
                     
                     # Create payment order in database
                     payment_order = PaymentOrder.objects.create(
@@ -71,9 +76,9 @@ class CreateOrderView(APIView):
                         coins_to_credit=coins_to_credit,
                         currency='INR',
                         status='PENDING',
-                        payment_method='CHECKOUT',  # Default to checkout, can be changed to QR_CODE
+                        payment_method='CHECKOUT',  # Default to checkout
                         
-                        # Razorpay QR Code data
+                        # Razorpay QR Code data (if available)
                         razorpay_qr_code_id=qr_result['qr_code_id'] if qr_result else None,
                         qr_code_image_url=qr_result['qr_code_url'] if qr_result else None,
                         qr_code_status=qr_result['qr_code_status'] if qr_result else None,
@@ -82,7 +87,8 @@ class CreateOrderView(APIView):
                         notes={
                             'razorpay_order': dict(razorpay_order) if razorpay_order else {},
                             'exchange_rate': '1 INR = 1 Coin',
-                            'qr_code_data': qr_result['qr_code_data'] if qr_result else None
+                            'qr_code_data': qr_result['qr_code_data'] if qr_result else None,
+                            'qr_creation_error': str(qr_error) if 'qr_error' in locals() else None
                         }
                     )
                     
@@ -117,13 +123,16 @@ class CreateOrderView(APIView):
                             'razorpay_checkout': {
                                 'order_id': razorpay_order['id'],
                                 'amount': int(float(amount) * 100),  # in paise
-                                'currency': 'INR'
+                                'currency': 'INR',
+                                'description': f'Purchase {coins_to_credit} coins for ₹{amount}'
                             },
                             'qr_code': {
                                 'qr_code_id': qr_result['qr_code_id'] if qr_result else None,
                                 'qr_image_url': qr_result['qr_code_url'] if qr_result else None,
-                                'status': qr_result['qr_code_status'] if qr_result else None
-                            } if qr_result else None
+                                'status': qr_result['qr_code_status'] if qr_result else None,
+                                'available': qr_result is not None
+                            },
+                            'payment_link': f'https://rzp.io/i/{razorpay_order["id"]}' if razorpay_order else None
                         }
                     }, status=status.HTTP_201_CREATED)
                     

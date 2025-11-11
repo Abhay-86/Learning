@@ -13,8 +13,53 @@ def decimal_serializer(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
+def create_razorpay_payment_link(amount, order_id, coins_to_credit, user):
+    """Create Razorpay Payment Link (more reliable than QR API)"""
+    try:
+        # Ensure amount is properly converted to float/int for API
+        amount_float = float(amount) if isinstance(amount, Decimal) else amount
+        
+        payment_link_data = {
+            'amount': int(amount_float * 100),  # Convert to paise
+            'currency': 'INR',
+            'accept_partial': False,
+            'description': f'Purchase {coins_to_credit} coins for ₹{amount_float}',
+            'customer': {
+                'name': f'{user.first_name} {user.last_name}'.strip() or user.username,
+                'email': user.email,
+                'contact': getattr(user, 'phone_number', '') or ''
+            },
+            'notify': {
+                'sms': True,
+                'email': True
+            },
+            'reminder_enable': True,
+            'notes': {
+                'order_id': order_id,
+                'user_id': str(user.id),
+                'username': user.username,
+                'coins_to_credit': str(coins_to_credit),
+                'purpose': 'coin_purchase'
+            },
+            'callback_url': f'{settings.FRONTEND_URL}/payments/success',
+            'callback_method': 'get'
+        }
+        
+        payment_link = razorpay_client.payment_link.create(payment_link_data)
+        
+        return {
+            'payment_link_id': payment_link['id'],
+            'payment_link_url': payment_link['short_url'],
+            'payment_link_status': payment_link['status'],
+            'payment_link_data': payment_link
+        }
+    except Exception as e:
+        print(f"Razorpay Payment Link creation error: {e}")
+        return None
+
+
 def create_razorpay_qr_code(amount, order_id, coins_to_credit, user):
-    """Create Razorpay QR Code for payment"""
+    """Create Razorpay QR Code for payment - Fallback to Payment Link if QR fails"""
     try:
         # Ensure amount is properly converted to float/int for API
         amount_float = float(amount) if isinstance(amount, Decimal) else amount
@@ -46,7 +91,8 @@ def create_razorpay_qr_code(amount, order_id, coins_to_credit, user):
         }
     except Exception as e:
         print(f"Razorpay QR Code creation error: {e}")
-        return None
+        # Fallback to Payment Link
+        return create_razorpay_payment_link(amount, order_id, coins_to_credit, user)
 
 
 def get_qr_code_status(qr_code_id):
