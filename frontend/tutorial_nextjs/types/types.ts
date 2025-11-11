@@ -8,6 +8,12 @@ export interface User {
   last_name: string;
   phone_number: string;
   role: UserRole;
+  is_verified: boolean;
+  // Wallet information
+  coin_balance: number;
+  total_coins_earned: number;
+  total_coins_spent: number;
+  total_money_spent: string;
 }
 
 export interface LoginPayload {

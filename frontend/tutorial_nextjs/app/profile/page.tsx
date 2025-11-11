@@ -33,7 +33,7 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Personal Information */}
         <Card>
           <CardHeader>
@@ -64,6 +64,34 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        {/* Wallet Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Wallet Information</CardTitle>
+            <CardDescription>Your coin balance and spending history</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Current Balance</p>
+                <p className="text-2xl font-bold text-green-600">{user.coin_balance} coins</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Earned</p>
+                <p>{user.total_coins_earned} coins</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Spent</p>
+                <p>{user.total_coins_spent} coins</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Money Spent</p>
+                <p>₹{user.total_money_spent}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Account Settings */}
         <Card>
           <CardHeader>
@@ -74,7 +102,9 @@ export default function ProfilePage() {
             <div className="space-y-2">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Email Verified</p>
-                <p className="text-green-600">✓ Verified</p>
+                <p className={user.is_verified ? "text-green-600" : "text-red-600"}>
+                  {user.is_verified ? "✓ Verified" : "✗ Not Verified"}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Two-Factor Auth</p>
