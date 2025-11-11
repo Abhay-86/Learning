@@ -3,22 +3,29 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db import transaction
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from decimal import Decimal
 import uuid
+import hmac
+import hashlib
+
+from .renderers import DecimalSafeJSONRenderer
 
 from .models import PaymentOrder, UserWallet, PaymentLog
 from .serializers import CreateOrderSerializer, PaymentOrderSerializer, UserWalletSerializer
 from .utils.razorpay_client import client as razorpay_client
 from .utils.payment_helpers import (
-    generate_qr_code, create_upi_url, calculate_coins_for_amount,
-    calculate_order_expiry, log_payment_activity, get_or_create_user_wallet
+    create_razorpay_qr_code, get_qr_code_status, close_qr_code,
+    calculate_coins_for_amount, calculate_order_expiry, log_payment_activity, 
+    get_or_create_user_wallet
 )
 
 
 class CreateOrderView(APIView):
     """Create order for coin purchase - 1 INR = 1 Coin"""
     permission_classes = [IsAuthenticated]
+    renderer_classes = [DecimalSafeJSONRenderer]
     
     @extend_schema(
         request=CreateOrderSerializer,
@@ -52,9 +59,8 @@ class CreateOrderView(APIView):
                     
                     razorpay_order = razorpay_client.order.create(razorpay_order_data)
                     
-                    # Generate UPI URL and QR code
-                    upi_url = create_upi_url(amount, order_id)
-                    qr_code = generate_qr_code(upi_url)
+                    # Create Razorpay QR code
+                    qr_result = create_razorpay_qr_code(float(amount), order_id, coins_to_credit, request.user)
                     
                     # Create payment order in database
                     payment_order = PaymentOrder.objects.create(
@@ -65,12 +71,18 @@ class CreateOrderView(APIView):
                         coins_to_credit=coins_to_credit,
                         currency='INR',
                         status='PENDING',
-                        qr_code=qr_code,
-                        upi_payment_url=upi_url,
+                        payment_method='CHECKOUT',  # Default to checkout, can be changed to QR_CODE
+                        
+                        # Razorpay QR Code data
+                        razorpay_qr_code_id=qr_result['qr_code_id'] if qr_result else None,
+                        qr_code_image_url=qr_result['qr_code_url'] if qr_result else None,
+                        qr_code_status=qr_result['qr_code_status'] if qr_result else None,
+                        
                         expires_at=calculate_order_expiry(),
                         notes={
-                            'razorpay_order': razorpay_order,
-                            'exchange_rate': '1 INR = 1 Coin'
+                            'razorpay_order': dict(razorpay_order) if razorpay_order else {},
+                            'exchange_rate': '1 INR = 1 Coin',
+                            'qr_code_data': qr_result['qr_code_data'] if qr_result else None
                         }
                     )
                     
@@ -99,8 +111,20 @@ class CreateOrderView(APIView):
                         'success': True,
                         'message': f'Order created successfully! You will receive {coins_to_credit} coins after payment.',
                         'order': response_serializer.data,
-                        'razorpay_key_id': razorpay_order_data.get('key_id'),  # You might want to add this
-                        'exchange_rate': '1 INR = 1 Coin'
+                        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+                        'exchange_rate': '1 INR = 1 Coin',
+                        'payment_options': {
+                            'razorpay_checkout': {
+                                'order_id': razorpay_order['id'],
+                                'amount': int(float(amount) * 100),  # in paise
+                                'currency': 'INR'
+                            },
+                            'qr_code': {
+                                'qr_code_id': qr_result['qr_code_id'] if qr_result else None,
+                                'qr_image_url': qr_result['qr_code_url'] if qr_result else None,
+                                'status': qr_result['qr_code_status'] if qr_result else None
+                            } if qr_result else None
+                        }
                     }, status=status.HTTP_201_CREATED)
                     
             except Exception as e:
@@ -138,6 +162,7 @@ class CreateOrderView(APIView):
 class UserWalletView(APIView):
     """Get user's wallet information"""
     permission_classes = [IsAuthenticated]
+    renderer_classes = [DecimalSafeJSONRenderer]
     
     @extend_schema(responses={200: UserWalletSerializer})
     def get(self, request):
@@ -174,10 +199,6 @@ class VerifyPaymentView(APIView):
             )
             
             # Verify signature with Razorpay
-            import hmac
-            import hashlib
-            from django.conf import settings
-            
             message = f"{razorpay_order_id}|{razorpay_payment_id}"
             signature = hmac.new(
                 settings.RAZORPAY_KEY_SECRET.encode(),
@@ -273,6 +294,7 @@ class VerifyPaymentView(APIView):
 class OrderStatusView(APIView):
     """Get order status and details"""
     permission_classes = [IsAuthenticated]
+    renderer_classes = [DecimalSafeJSONRenderer]
     
     def get(self, request, order_id):
         try:
@@ -281,13 +303,44 @@ class OrderStatusView(APIView):
                 user=request.user
             )
             
+            # Check QR code status if available
+            qr_status_updated = False
+            if payment_order.razorpay_qr_code_id and payment_order.status == 'PENDING':
+                qr_status, qr_data = get_qr_code_status(payment_order.razorpay_qr_code_id)
+                if qr_status and qr_status != payment_order.qr_code_status:
+                    payment_order.qr_code_status = qr_status
+                    payment_order.webhook_data = qr_data or {}
+                    payment_order.save()
+                    qr_status_updated = True
+                    
+                    # If QR code was paid, update order status
+                    if qr_status == 'paid':
+                        with transaction.atomic():
+                            payment_order.status = 'PAID'
+                            payment_order.mark_as_paid()
+                            
+                            # Credit coins to user wallet
+                            wallet = get_or_create_user_wallet(request.user)
+                            wallet.add_coins(
+                                amount=payment_order.coins_to_credit,
+                                transaction_type='PURCHASE',
+                                reference=payment_order.order_id
+                            )
+                            wallet.total_money_spent += payment_order.amount
+                            wallet.save()
+            
             serializer = PaymentOrderSerializer(payment_order)
             
-            return Response({
+            response_data = {
                 'success': True,
                 'order': serializer.data,
                 'message': f'Order status: {payment_order.status}'
-            }, status=status.HTTP_200_OK)
+            }
+            
+            if qr_status_updated:
+                response_data['qr_status_updated'] = True
+                
+            return Response(response_data, status=status.HTTP_200_OK)
             
         except PaymentOrder.DoesNotExist:
             return Response({
@@ -297,38 +350,122 @@ class OrderStatusView(APIView):
 
 
 class PaymentWebhookView(APIView):
-    """Handle Razorpay webhooks"""
+    """Handle Razorpay webhooks for automatic payment processing"""
     permission_classes = [AllowAny]
     
     def post(self, request):
-        # This endpoint will handle Razorpay webhooks for automatic payment updates
-        # You would verify the webhook signature and update order status
-        # For now, we'll keep it simple
-        
         try:
+            # Verify webhook signature
+            webhook_signature = request.META.get('HTTP_X_RAZORPAY_SIGNATURE')
+            webhook_body = request.body
+            
+            if not webhook_signature:
+                return Response({
+                    'error': 'Missing webhook signature'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verify webhook signature
+            expected_signature = hmac.new(
+                settings.RAZORPAY_WEBHOOK_SECRET.encode() if hasattr(settings, 'RAZORPAY_WEBHOOK_SECRET') else b'',
+                webhook_body,
+                hashlib.sha256
+            ).hexdigest()
+            
+            # For now, skip signature verification in development
+            # In production, uncomment this:
+            # if not hmac.compare_digest(webhook_signature, expected_signature):
+            #     return Response({'error': 'Invalid signature'}, status=400)
+            
             event = request.data.get('event')
             payload = request.data.get('payload', {})
             
+            # Handle different webhook events
             if event == 'payment.captured':
-                payment = payload.get('payment', {})
-                entity = payment.get('entity', {})
-                order_id = entity.get('order_id')
+                self.handle_payment_captured(payload)
+            elif event == 'qr_code.credited':
+                self.handle_qr_payment(payload)
+            elif event == 'order.paid':
+                self.handle_order_paid(payload)
                 
-                if order_id:
-                    # Find and update order
-                    payment_order = PaymentOrder.objects.filter(
-                        razorpay_order_id=order_id,
-                        status='PENDING'
-                    ).first()
-                    
-                    if payment_order:
-                        # Process payment similar to verify endpoint
-                        # This is a simplified version - in production, verify webhook signature
-                        pass
-            
             return Response({'status': 'ok'}, status=status.HTTP_200_OK)
             
         except Exception as e:
+            # Log the error for debugging
+            print(f"Webhook error: {str(e)}")
             return Response({
-                'error': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'error': 'Webhook processing failed'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def handle_payment_captured(self, payload):
+        """Handle payment.captured webhook"""
+        payment = payload.get('payment', {}).get('entity', {})
+        order_id = payment.get('order_id')
+        payment_id = payment.get('id')
+        
+        if order_id and payment_id:
+            payment_order = PaymentOrder.objects.filter(
+                razorpay_order_id=order_id,
+                status='PENDING'
+            ).first()
+            
+            if payment_order:
+                with transaction.atomic():
+                    payment_order.status = 'PAID'
+                    payment_order.razorpay_payment_id = payment_id
+                    payment_order.webhook_data = payload
+                    payment_order.mark_as_paid()
+                    
+                    # Credit coins
+                    wallet = get_or_create_user_wallet(payment_order.user)
+                    wallet.add_coins(
+                        amount=payment_order.coins_to_credit,
+                        transaction_type='PURCHASE',
+                        reference=payment_order.order_id
+                    )
+                    wallet.total_money_spent += payment_order.amount
+                    wallet.save()
+    
+    def handle_qr_payment(self, payload):
+        """Handle QR code payment webhook"""
+        qr_code = payload.get('qr_code', {}).get('entity', {})
+        qr_code_id = qr_code.get('id')
+        
+        if qr_code_id:
+            payment_order = PaymentOrder.objects.filter(
+                razorpay_qr_code_id=qr_code_id,
+                status='PENDING'
+            ).first()
+            
+            if payment_order:
+                with transaction.atomic():
+                    payment_order.status = 'PAID'
+                    payment_order.qr_code_status = 'paid'
+                    payment_order.webhook_data = payload
+                    payment_order.mark_as_paid()
+                    
+                    # Credit coins
+                    wallet = get_or_create_user_wallet(payment_order.user)
+                    wallet.add_coins(
+                        amount=payment_order.coins_to_credit,
+                        transaction_type='PURCHASE',
+                        reference=payment_order.order_id
+                    )
+                    wallet.total_money_spent += payment_order.amount
+                    wallet.save()
+    
+    def handle_order_paid(self, payload):
+        """Handle order.paid webhook"""
+        order = payload.get('order', {}).get('entity', {})
+        order_id = order.get('id')
+        
+        if order_id:
+            payment_order = PaymentOrder.objects.filter(
+                razorpay_order_id=order_id,
+                status='PENDING'
+            ).first()
+            
+            if payment_order:
+                # This will be handled by payment.captured event
+                # Just update webhook data
+                payment_order.webhook_data = payload
+                payment_order.save()

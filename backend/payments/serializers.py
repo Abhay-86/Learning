@@ -18,19 +18,21 @@ class CreateOrderSerializer(serializers.Serializer):
 
 class PaymentOrderSerializer(serializers.ModelSerializer):
     """Serializer for payment order response"""
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=True)
     
     class Meta:
         model = PaymentOrder
         fields = [
             'order_id', 'razorpay_order_id', 'amount', 'coins_to_credit',
-            'currency', 'status', 'qr_code', 'upi_payment_url',
-            'created_at', 'expires_at'
+            'currency', 'status', 'payment_method', 'razorpay_qr_code_id', 
+            'qr_code_image_url', 'qr_code_status', 'created_at', 'expires_at'
         ]
         read_only_fields = fields
 
 
 class UserWalletSerializer(serializers.ModelSerializer):
     """Serializer for user wallet info"""
+    total_money_spent = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=True)
     
     class Meta:
         model = UserWallet

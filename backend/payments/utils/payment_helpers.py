@@ -1,41 +1,84 @@
-import qrcode
-import io
-import base64
 from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
+from django.conf import settings
+from .razorpay_client import client as razorpay_client
+import json
 
 
-def generate_qr_code(upi_url):
-    """Generate QR code for UPI payment"""
+def decimal_serializer(obj):
+    """JSON serializer for Decimal objects"""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+def create_razorpay_qr_code(amount, order_id, coins_to_credit, user):
+    """Create Razorpay QR Code for payment"""
     try:
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(upi_url)
-        qr.make(fit=True)
-
-        # Create QR code image
-        img = qr.make_image(fill_color="black", back_color="white")
+        # Ensure amount is properly converted to float/int for API
+        amount_float = float(amount) if isinstance(amount, Decimal) else amount
         
-        # Convert to base64
-        buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
-        buffer.seek(0)
+        qr_data = {
+            'type': 'upi_qr',
+            'name': f'Coin Purchase - {coins_to_credit} coins',
+            'usage': 'single_use',
+            'fixed_amount': True,
+            'payment_amount': int(amount_float * 100),  # Convert to paise
+            'description': f'Purchase {coins_to_credit} coins for ₹{amount_float}',
+            'customer_id': str(user.id),
+            'notes': {
+                'order_id': order_id,
+                'user_id': str(user.id),
+                'username': user.username,
+                'coins_to_credit': str(coins_to_credit),
+                'purpose': 'coin_purchase'
+            }
+        }
         
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
-        return f"data:image/png;base64,{qr_base64}"
-    
+        qr_code = razorpay_client.qrcode.create(qr_data)
+        
+        return {
+            'qr_code_id': qr_code['id'],
+            'qr_code_url': qr_code['image_url'],
+            'qr_code_status': qr_code['status'],
+            'qr_code_data': qr_code
+        }
     except Exception as e:
+        print(f"Razorpay QR Code creation error: {e}")
         return None
 
 
+def get_qr_code_status(qr_code_id):
+    """Get QR code status from Razorpay"""
+    try:
+        qr_code = razorpay_client.qrcode.fetch(qr_code_id)
+        return qr_code.get('status'), qr_code
+    except Exception as e:
+        print(f"QR Code status fetch error: {e}")
+        return None, None
+
+
+def close_qr_code(qr_code_id):
+    """Close/deactivate QR code"""
+    try:
+        result = razorpay_client.qrcode.close(qr_code_id)
+        return result
+    except Exception as e:
+        print(f"QR Code close error: {e}")
+        return None
+
+
+# Legacy functions (deprecated - kept for backward compatibility)
+def generate_qr_code(upi_url):
+    """Generate QR code for UPI payment - DEPRECATED: Use create_razorpay_qr_code instead"""
+    # This function is deprecated in favor of Razorpay's native QR codes
+    return None
+
+
 def create_upi_url(amount, order_id, merchant_name="YourApp"):
-    """Create UPI payment URL"""
-    # UPI URL format for QR code
+    """Create UPI payment URL - DEPRECATED: Use create_razorpay_qr_code instead"""
+    # This is now deprecated in favor of Razorpay QR codes
     upi_id = "merchant@upi"  # Replace with your actual UPI ID
     amount_str = f"{amount:.2f}"
     
@@ -61,16 +104,26 @@ def calculate_order_expiry():
 
 def log_payment_activity(user, log_type, message, order=None, **kwargs):
     """Helper function to log payment activities"""
-    from .models import PaymentLog
+    from ..models import PaymentLog
     
     try:
+        # Convert any Decimal objects to float for JSON serialization
+        request_data = kwargs.get('request_data', {})
+        response_data = kwargs.get('response_data', {})
+        
+        # Safely serialize data that might contain Decimal objects
+        if request_data:
+            request_data = json.loads(json.dumps(request_data, default=decimal_serializer))
+        if response_data:
+            response_data = json.loads(json.dumps(response_data, default=decimal_serializer))
+        
         PaymentLog.objects.create(
             user=user,
             log_type=log_type,
             message=message,
             order=order,
-            request_data=kwargs.get('request_data', {}),
-            response_data=kwargs.get('response_data', {}),
+            request_data=request_data,
+            response_data=response_data,
             ip_address=kwargs.get('ip_address'),
             user_agent=kwargs.get('user_agent')
         )
@@ -81,7 +134,7 @@ def log_payment_activity(user, log_type, message, order=None, **kwargs):
 
 def get_or_create_user_wallet(user):
     """Get or create user wallet"""
-    from .models import UserWallet
+    from ..models import UserWallet
     
     wallet, created = UserWallet.objects.get_or_create(
         user=user,
