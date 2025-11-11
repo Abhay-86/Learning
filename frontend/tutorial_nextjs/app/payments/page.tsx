@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { createOrder, getUserWallet, getOrderStatus } from "@/services/payments/paymentApi";
-import type { CreateOrderResponse, PaymentOrder, UserWallet } from "@/services/payments/paymentApi";
+import type { CreateOrderResponse, PaymentOrder, UserWallet, PaymentOptions } from "@/services/payments/paymentApi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,8 +36,10 @@ export default function PaymentPage() {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [currentOrder, setCurrentOrder] = useState<PaymentOrder | null>(null);
+  const [paymentOptions, setPaymentOptions] = useState<PaymentOptions | null>(null);
   const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [razorpayLoaded, setRazorpayLoaded] = useState<boolean>(false);
+  const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
 
   // Load Razorpay script
   useEffect(() => {
@@ -94,6 +96,8 @@ export default function PaymentPage() {
     try {
       const response: CreateOrderResponse = await createOrder({ amount });
       setCurrentOrder(response.order);
+      setPaymentOptions(response.payment_options);
+      setRazorpayKeyId(response.razorpay_key_id);
       setSuccess(`Order created! You will receive ${response.order.coins_to_credit} coins after payment.`);
       setCurrentStep('payment');
     } catch (err: any) {
@@ -104,18 +108,18 @@ export default function PaymentPage() {
   };
 
   const handleRazorpayPayment = async () => {
-    if (!currentOrder || !razorpayLoaded) {
+    if (!currentOrder || !paymentOptions?.razorpay_checkout || !razorpayLoaded || !razorpayKeyId) {
       setError('Payment system not ready. Please try again.');
       return;
     }
 
     const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '', // Your Razorpay key ID
-      amount: parseInt(currentOrder.amount) * 100, // Amount in paise
-      currency: currentOrder.currency,
+      key: razorpayKeyId,
+      amount: paymentOptions.razorpay_checkout.amount,
+      currency: paymentOptions.razorpay_checkout.currency,
       name: 'Coin Purchase',
       description: `Purchase ${currentOrder.coins_to_credit} coins for ₹${currentOrder.amount}`,
-      order_id: currentOrder.razorpay_order_id,
+      order_id: paymentOptions.razorpay_checkout.order_id,
       handler: async (response: any) => {
         setCurrentStep('processing');
         await handlePaymentSuccess(response);
@@ -126,8 +130,8 @@ export default function PaymentPage() {
         }
       },
       prefill: {
-        name: `${user?.first_name} ${user?.last_name}`,
-        email: user?.email,
+        name: `${user?.first_name} ${user?.last_name}` || '',
+        email: user?.email || '',
         contact: user?.phone_number || ''
       },
       theme: {
@@ -169,16 +173,50 @@ export default function PaymentPage() {
     }
   };
 
-  const handleUPIPayment = () => {
-    if (currentOrder?.upi_payment_url) {
-      window.open(currentOrder.upi_payment_url, '_blank');
+  const handleQRPayment = () => {
+    if (paymentOptions?.qr_code?.qr_image_url) {
       setCurrentStep('processing');
+      // Start polling for QR payment status
+      pollQRPaymentStatus();
+    } else {
+      setError('QR code not available. Please use Razorpay checkout.');
     }
+  };
+
+  const pollQRPaymentStatus = () => {
+    if (!currentOrder) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const statusResponse = await getOrderStatus(currentOrder.order_id);
+        if (statusResponse.success && statusResponse.order.status === 'PAID') {
+          clearInterval(pollInterval);
+          setSuccess(`Payment successful! ${currentOrder.coins_to_credit} coins have been added to your wallet.`);
+          setCurrentStep('success');
+          
+          // Refresh wallet data
+          const walletResponse = await getUserWallet();
+          setWallet(walletResponse.wallet);
+        }
+      } catch (err) {
+        console.error('Error polling payment status:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Stop polling after 5 minutes
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      if (currentStep === 'processing') {
+        setError('Payment timeout. Please check your payment and contact support if needed.');
+        setCurrentStep('failed');
+      }
+    }, 300000);
   };
 
   const resetPayment = () => {
     setCurrentStep('amount');
     setCurrentOrder(null);
+    setPaymentOptions(null);
     setError('');
     setSuccess('');
   };
@@ -336,23 +374,27 @@ export default function PaymentPage() {
                   </Button>
 
                   <Button 
-                    onClick={handleUPIPayment}
+                    onClick={handleQRPayment}
                     variant="outline"
                     className="w-full"
+                    disabled={!paymentOptions?.qr_code}
                   >
                     <QrCode className="mr-2 h-4 w-4" />
-                    Pay with UPI
+                    Pay with QR Code
                   </Button>
                 </div>
 
-                {currentOrder.qr_code && (
+                {paymentOptions?.qr_code?.qr_image_url && (
                   <div className="text-center">
                     <p className="text-sm text-muted-foreground mb-2">Or scan QR code:</p>
                     <img 
-                      src={currentOrder.qr_code} 
+                      src={paymentOptions.qr_code.qr_image_url} 
                       alt="Payment QR Code"
                       className="mx-auto max-w-48 h-auto border rounded"
                     />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      QR Status: {paymentOptions.qr_code.status}
+                    </p>
                   </div>
                 )}
               </div>
