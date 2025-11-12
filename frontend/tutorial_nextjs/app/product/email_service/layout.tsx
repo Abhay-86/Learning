@@ -32,7 +32,7 @@ export default function EmailServiceLayout({
           selectedFileId={selectedFileId}
         />
         <div className="flex-1 flex flex-col min-h-screen">
-          <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex h-12 items-center px-4">
               <SidebarTrigger />
               <div className="ml-4">
@@ -40,7 +40,7 @@ export default function EmailServiceLayout({
               </div>
             </div>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 overflow-hidden">
             {children}
           </div>
         </div>

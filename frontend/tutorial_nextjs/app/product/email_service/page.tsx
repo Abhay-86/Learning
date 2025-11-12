@@ -154,21 +154,23 @@ export default function EmailServicePage() {
     const activeContent = activeFileId ? fileContents[activeFileId] || '' : ''
 
     return (
-        <div className="flex flex-col h-screen">
+        <div className="flex flex-col h-full">
             {/* File Tabs */}
-            <FileTabs 
-                openFiles={openFiles}
-                activeFileId={activeFileId}
-                onFileSelect={setActiveFileId}
-                onFileClose={handleFileClose}
-            />
+            <div className="shrink-0">
+                <FileTabs 
+                    openFiles={openFiles}
+                    activeFileId={activeFileId}
+                    onFileSelect={setActiveFileId}
+                    onFileClose={handleFileClose}
+                />
+            </div>
             
             {/* Main Content Area - Split Screen */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col overflow-hidden">
                 {activeFile ? (
                     <>
                         {/* Code Editor - Top Half */}
-                        <div className="flex-1 border-b">
+                        <div className="flex-1 border-b overflow-hidden">
                             <CodeEditor
                                 content={activeContent}
                                 onChange={handleContentChange}
@@ -178,7 +180,7 @@ export default function EmailServicePage() {
                         </div>
                         
                         {/* Preview Panel - Bottom Half */}
-                        <div className="flex-1">
+                        <div className="flex-1 overflow-hidden">
                             <PreviewPanel
                                 htmlContent={activeContent}
                                 fileName={activeFile.name}

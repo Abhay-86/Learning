@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Eye, Code, Smartphone, Monitor, Tablet } from "lucide-react"
+import { Eye, Code, Smartphone, Monitor, Tablet, Copy } from "lucide-react"
 
 interface PreviewPanelProps {
   htmlContent: string
@@ -38,36 +38,36 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="flex items-center border rounded-md">
+          {/* View Mode Toggle - Made more prominent */}
+          <div className="flex items-center border rounded-lg bg-muted/50">
             <Button
               size="sm"
               variant={viewMode === 'preview' ? 'default' : 'ghost'}
               onClick={() => setViewMode('preview')}
-              className="h-8 px-3 rounded-r-none border-r"
+              className="h-9 px-4 rounded-r-none border-r"
             >
-              <Eye className="h-4 w-4 mr-1" />
+              <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
             <Button
               size="sm"
               variant={viewMode === 'source' ? 'default' : 'ghost'}
               onClick={() => setViewMode('source')}
-              className="h-8 px-3 rounded-l-none"
+              className="h-9 px-4 rounded-l-none font-mono"
             >
-              <Code className="h-4 w-4 mr-1" />
-              Source
+              <Code className="h-4 w-4 mr-2" />
+              <span>&lt;&gt;</span> Source
             </Button>
           </div>
           
           {/* Device Mode Toggle */}
           {viewMode === 'preview' && (
-            <div className="flex items-center border rounded-md">
+            <div className="flex items-center border rounded-lg bg-muted/50">
               <Button
                 size="sm"
                 variant={deviceMode === 'desktop' ? 'default' : 'ghost'}
                 onClick={() => setDeviceMode('desktop')}
-                className="h-8 px-2 rounded-r-none border-r"
+                className="h-9 px-3 rounded-r-none border-r"
               >
                 <Monitor className="h-4 w-4" />
               </Button>
@@ -75,7 +75,7 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
                 size="sm"
                 variant={deviceMode === 'tablet' ? 'default' : 'ghost'}
                 onClick={() => setDeviceMode('tablet')}
-                className="h-8 px-2 rounded-none border-r"
+                className="h-9 px-3 rounded-none border-r"
               >
                 <Tablet className="h-4 w-4" />
               </Button>
@@ -83,7 +83,7 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
                 size="sm"
                 variant={deviceMode === 'mobile' ? 'default' : 'ghost'}
                 onClick={() => setDeviceMode('mobile')}
-                className="h-8 px-2 rounded-l-none"
+                className="h-9 px-3 rounded-l-none"
               >
                 <Smartphone className="h-4 w-4" />
               </Button>
@@ -122,12 +122,30 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
             </div>
           </div>
         ) : (
-          <div className="h-full">
-            <pre className="bg-muted p-4 rounded-lg h-full overflow-auto">
-              <code className="text-sm font-mono">
-                {htmlContent || '<!-- No content to display -->'}
-              </code>
-            </pre>
+          /* Source Code View */
+          <div className="h-full p-4 bg-muted/30">
+            <div className="h-full border rounded-lg bg-background overflow-hidden">
+              <div className="flex items-center justify-between p-3 border-b bg-muted/50">
+                <span className="text-sm font-medium flex items-center">
+                  <Code className="h-4 w-4 mr-2" />
+                  HTML Source Code
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => navigator.clipboard.writeText(htmlContent)}
+                  className="h-7 px-2 text-xs"
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copy
+                </Button>
+              </div>
+              <pre className="p-4 h-full overflow-auto font-mono text-sm leading-relaxed">
+                <code className="text-foreground">
+                  {htmlContent || '<!-- No content to display -->'}
+                </code>
+              </pre>
+            </div>
           </div>
         )}
       </div>
