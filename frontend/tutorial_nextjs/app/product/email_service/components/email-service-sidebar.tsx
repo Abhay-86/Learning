@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { 
   Folder, 
   FolderOpen, 
@@ -172,7 +172,7 @@ function FileTreeItem({
 
 export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplorerProps) {
   return (
-    <Sidebar>
+    <Sidebar style={{ top: '4rem', height: 'calc(100vh - 4rem)' } as React.CSSProperties}>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sm font-semibold">
