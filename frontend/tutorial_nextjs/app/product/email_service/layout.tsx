@@ -1,4 +1,7 @@
 import { EmailServiceRouteGuard } from "@/components/ProductRouteGuard";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
+import App from "next/app";
 
 export default function AIBotLayout({
   children,
@@ -10,13 +13,13 @@ export default function AIBotLayout({
   
   return (
     <EmailServiceRouteGuard redirectOnNoAccess={true}>
+      <SidebarProvider>
+        <AppSidebar />
       <div className="min-h-screen">
-        {/* Optional: Add AI Bot specific navigation */}
-        <div className="bg-purple-100 dark:bg-purple-900/20 p-2 text-center text-sm">
-          🤖 AI Bot Area - Protected by layout.tsx
-        </div>
+        <SidebarTrigger />
         {children}
       </div>
+      </SidebarProvider>
     </EmailServiceRouteGuard>
   );
 }
