@@ -1,22 +1,35 @@
 'use client'
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Code, Copy } from "lucide-react"
+import { Eye, Smartphone, Monitor, Tablet } from "lucide-react"
 
-interface SourcePanelProps {
+interface PreviewPanelProps {
   htmlContent: string
   fileName?: string
 }
 
-export function PreviewPanel({ htmlContent, fileName }: SourcePanelProps) {
+type DeviceMode = 'desktop' | 'tablet' | 'mobile'
+
+export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
+  const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop')
+
+  const getDeviceWidth = () => {
+    switch (deviceMode) {
+      case 'mobile': return '375px'
+      case 'tablet': return '768px' 
+      case 'desktop': return '100%'
+    }
+  }
+
   return (
     <div className="flex flex-col h-full border-t">
-      {/* Source Header */}
+      {/* Preview Header */}
       <div className="flex items-center justify-between p-2 border-b bg-muted/50">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium flex items-center">
-            <Code className="h-4 w-4 mr-2" />
-            <span>&lt;&gt;</span> Source Code
+            <Eye className="h-4 w-4 mr-2" />
+            Preview
           </span>
           {fileName && (
             <span className="text-xs text-muted-foreground">
@@ -25,38 +38,74 @@ export function PreviewPanel({ htmlContent, fileName }: SourcePanelProps) {
           )}
         </div>
         
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => navigator.clipboard.writeText(htmlContent)}
-          className="h-7 px-2 text-xs"
-        >
-          <Copy className="h-3 w-3 mr-1" />
-          Copy All
-        </Button>
+        {/* Device Mode Toggle */}
+        <div className="flex items-center border rounded-lg bg-muted/50">
+          <Button
+            size="sm"
+            variant={deviceMode === 'desktop' ? 'default' : 'ghost'}
+            onClick={() => setDeviceMode('desktop')}
+            className="h-9 px-3 rounded-r-none border-r"
+          >
+            <Monitor className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant={deviceMode === 'tablet' ? 'default' : 'ghost'}
+            onClick={() => setDeviceMode('tablet')}
+            className="h-9 px-3 rounded-none border-r"
+          >
+            <Tablet className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant={deviceMode === 'mobile' ? 'default' : 'ghost'}
+            onClick={() => setDeviceMode('mobile')}
+            className="h-9 px-3 rounded-l-none"
+          >
+            <Smartphone className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Source Code Content */}
-      <div className="flex-1 overflow-hidden p-4">
-        <div className="h-full border rounded-lg bg-background overflow-hidden">
-          <div className="h-full overflow-auto">
-            <pre className="p-4 font-mono text-sm leading-relaxed h-full">
-              <code className="text-foreground whitespace-pre-wrap break-words block">
-                {htmlContent || '<!-- No content to display -->'}
-              </code>
-            </pre>
+      {/* Preview Content Only */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 flex justify-center">
+          <div 
+            className="transition-all duration-300 border rounded-lg shadow-sm bg-white overflow-hidden"
+            style={{ 
+              width: getDeviceWidth(),
+              maxWidth: '100%',
+              minHeight: '400px'
+            }}
+          >
+            {htmlContent ? (
+              <iframe
+                srcDoc={htmlContent}
+                className="w-full h-full min-h-[400px] border-0"
+                title="Email Preview"
+                style={{ backgroundColor: 'white' }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                <div className="text-center">
+                  <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No content to preview</p>
+                  <p className="text-sm">Select a file or start editing to see preview</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
       
-      {/* Source Footer */}
+      {/* Preview Footer */}
       <div className="p-2 border-t bg-muted/30">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>
             {htmlContent ? `${htmlContent.length} characters` : 'Empty'}
           </span>
           <span>
-            HTML source code view
+            Viewing in {deviceMode} mode
           </span>
         </div>
       </div>
