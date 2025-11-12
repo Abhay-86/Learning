@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { CodeEditor } from "./components/code-editor"
 import { PreviewPanel } from "./components/preview-panel"
 import { FileTabs, OpenFile } from "./components/file-tabs"
+import { ResizablePanels } from "./components/resizable-panels"
 
 // Dummy template data
 const dummyTemplates: { [key: string]: string } = {
@@ -165,28 +166,28 @@ export default function EmailServicePage() {
                 />
             </div>
             
-            {/* Main Content Area - Split Screen */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Main Content Area - Resizable Split Screen */}
+            <div className="flex-1 overflow-hidden">
                 {activeFile ? (
-                    <>
-                        {/* Code Editor - Top Half */}
-                        <div className="flex-1 border-b overflow-hidden">
-                            <CodeEditor
-                                content={activeContent}
-                                onChange={handleContentChange}
-                                fileName={activeFile.name}
-                                language={activeFile.extension}
-                            />
-                        </div>
+                    <ResizablePanels 
+                        defaultSizePercentage={55}
+                        minSizePercentage={25}
+                        maxSizePercentage={75}
+                    >
+                        {/* Code Editor - Top Panel (Resizable) */}
+                        <CodeEditor
+                            content={activeContent}
+                            onChange={handleContentChange}
+                            fileName={activeFile.name}
+                            language={activeFile.extension}
+                        />
                         
-                        {/* Preview Panel - Bottom Half */}
-                        <div className="flex-1 overflow-hidden">
-                            <PreviewPanel
-                                htmlContent={activeContent}
-                                fileName={activeFile.name}
-                            />
-                        </div>
-                    </>
+                        {/* Preview Panel - Bottom Panel (Resizable) */}
+                        <PreviewPanel
+                            htmlContent={activeContent}
+                            fileName={activeFile.name}
+                        />
+                    </ResizablePanels>
                 ) : (
                     /* Welcome Screen */
                     <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
