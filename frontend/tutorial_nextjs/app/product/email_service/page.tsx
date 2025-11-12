@@ -93,6 +93,7 @@ export default function EmailServicePage() {
             
             if (existingFile) {
                 setActiveFileId(file.id)
+                console.log('File already open:', file.name)
             } else {
                 // Open new file
                 const content = dummyTemplates[file.id] || `<!DOCTYPE html>
