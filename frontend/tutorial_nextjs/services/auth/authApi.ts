@@ -3,12 +3,12 @@ import { User, LoginPayload, RegisterPayload, SendOTPPayload, VerifyOTPPayload, 
 
 export async function login(loginPayload: LoginPayload): Promise<User> {
     const response = await axiosInstance.post("accounts/login/", loginPayload);
-    return response.data;
+    return response.data.user; // Extract the user object from the login response
 }
 
 export async function userProfile(): Promise<User> {
     const response = await axiosInstance.get("/accounts/profile/");
-    return response.data;
+    return response.data.user; // Extract the user object from the response
 }
 
 export async function refreshToken(): Promise<void> {
@@ -32,5 +32,10 @@ export async function sendOTP(sendOTPPayload: SendOTPPayload): Promise<OTPRespon
 export async function verifyOTP(verifyOTPPayload: VerifyOTPPayload): Promise<OTPResponse> {
     const response = await axiosInstance.post("accounts/verify-email/", verifyOTPPayload);
     return response.data;
+}
+
+export async function getDashboardData(): Promise<any> {
+    const response = await axiosInstance.get("/accounts/dashboard/");
+    return response.data.dashboard;
 }
 

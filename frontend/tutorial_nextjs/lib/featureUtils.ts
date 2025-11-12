@@ -5,6 +5,7 @@ export class FeatureUtils {
    * Check if user has access to a specific feature by code
    * @param userFeatures Array of UserFeature objects from API
    * @param featureCode Feature code to check (e.g., 'crm', 'ai_bot')
+   * @returns boolean indicating access
    */
   hasFeatureAccess(userFeatures: UserFeature[], featureCode: string): boolean {
     if (!userFeatures || userFeatures.length === 0) return false;
@@ -28,6 +29,7 @@ export class FeatureUtils {
 
   /**
    * Get user's active and valid features only
+   * @return array of active UserFeature objects
    */
   getActiveFeatures(userFeatures: UserFeature[]): UserFeature[] {
     return userFeatures.filter(uf => {
@@ -46,6 +48,7 @@ export class FeatureUtils {
 
   /**
    * Get feature codes that user has access to
+   * @return array of feature codes
    */
   getAccessibleFeatureCodes(userFeatures: UserFeature[]): string[] {
     return this.getActiveFeatures(userFeatures).map(uf => uf.feature.code);
@@ -53,6 +56,7 @@ export class FeatureUtils {
 
   /**
    * Check multiple feature access at once
+   * @return true if user has access to any of the features
    */
   hasAnyFeatureAccess(userFeatures: UserFeature[], featureCodes: string[]): boolean {
     return featureCodes.some(code => this.hasFeatureAccess(userFeatures, code));
@@ -60,6 +64,7 @@ export class FeatureUtils {
 
   /**
    * Get UserFeature object by feature code
+   * @return UserFeature or null if not found
    */
   getUserFeatureByCode(userFeatures: UserFeature[], featureCode: string): UserFeature | null {
     return userFeatures.find(uf => uf.feature.code === featureCode) || null;
@@ -67,6 +72,7 @@ export class FeatureUtils {
 
   /**
    * Check if user should be redirected to payments for a feature
+   * @return true if user lacks access to the feature
    */
   shouldRedirectToPayments(userFeatures: UserFeature[], featureCode: string): boolean {
     return !this.hasFeatureAccess(userFeatures, featureCode);
@@ -74,6 +80,7 @@ export class FeatureUtils {
 
   /**
    * Get feature display name by code
+   * @return friendly name for the feature
    */
   getFeatureDisplayName(featureCode: string): string {
     const featureNames: Record<string, string> = {
@@ -88,6 +95,7 @@ export class FeatureUtils {
 
   /**
    * Get feature expiry info
+   * @return object with hasFeature, isExpired, expiresOn, daysUntilExpiry
    */
   getFeatureExpiryInfo(userFeatures: UserFeature[], featureCode: string): {
     hasFeature: boolean;
