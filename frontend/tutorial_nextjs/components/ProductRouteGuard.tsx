@@ -226,7 +226,7 @@ export function AIBotRouteGuard({ children, ...props }: Omit<ProductRouteGuardPr
 }
 export function EmailServiceRouteGuard({ children, ...props }: Omit<ProductRouteGuardProps, 'requiredFeature'>) {
   return (
-    <ProductRouteGuard requiredFeature="email_service" productName="Email Service" {...props}>
+    <ProductRouteGuard requiredFeature="referly" productName="Email Service" {...props}>
       {children}
     </ProductRouteGuard>
   );

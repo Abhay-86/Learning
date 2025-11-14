@@ -86,7 +86,7 @@ export class FeatureUtils {
     const featureNames: Record<string, string> = {
       'crm': 'CRM System',
       'ai_bot': 'AI Bot Assistant',
-      'email_service': 'Email Marketing',
+      'referly': 'Email Marketing',
       'time_travel': 'Time Travel Analytics',
       // 'test': 'Test Environment'
     };
