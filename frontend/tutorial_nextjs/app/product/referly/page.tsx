@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { CodeEditor } from "./components/code-editor"
 import { PreviewPanel } from "./components/preview-panel"
 import { FileTabs, OpenFile } from "./components/file-tabs"
@@ -26,20 +26,7 @@ export default function EmailServicePage() {
     const [fileContents, setFileContents] = useState<FileContentState>({})
     const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
 
-    // Listen for file selection events from the sidebar
-    useEffect(() => {
-        const handleFileSelected = (event: CustomEvent) => {
-            handleFileSelect(event.detail)
-        }
-
-        window.addEventListener('fileSelected', handleFileSelected as EventListener)
-        
-        return () => {
-            window.removeEventListener('fileSelected', handleFileSelected as EventListener)
-        }
-    }, [openFiles])
-
-    const handleFileSelect = async (file: FolderItem) => {
+    const handleFileSelect = useCallback(async (file: FolderItem) => {
         if (file.type === 'file') {
             // Check if file is already open
             const existingFile = openFiles.find(f => f.id === file.id)
@@ -75,15 +62,37 @@ export default function EmailServicePage() {
             try {
                 let content = ''
                 
-                if (file.extension === 'html') {
+                // Extract the actual ID by removing the prefix
+                let actualId = file.id
+                let fileType: 'template' | 'resume' = 'template'
+                
+                if (file.id.startsWith('TPL_')) {
+                    actualId = file.id.replace('TPL_', '')
+                    fileType = 'template'
+                } else if (file.id.startsWith('RES_')) {
+                    actualId = file.id.replace('RES_', '')
+                    fileType = 'resume'
+                }
+                
+                console.log('Processing file:', { originalId: file.id, actualId, fileType, extension: file.extension })
+                
+                if (file.extension === 'html' && fileType === 'template') {
                     // Load template content
-                    console.log('Loading template content for file:', file)
-                    const templateData = await getTemplateContent(parseInt(file.id))
+                    console.log('Loading template content for ID:', actualId)
+                    const templateData = await getTemplateContent(parseInt(actualId))
                     console.log('Loaded template data:', templateData)
                     content = templateData.html_content
-                } else if (file.extension === 'pdf' || file.extension === 'docx') {
+                } else if ((file.extension === 'pdf' || file.extension === 'docx') && fileType === 'resume') {
                     // For resume files, we'll use the ResumeViewer component
-                    content = `RESUME_FILE:${file.id}:${file.name}:${file.extension}:${file.size || 0}`
+                    console.log('Loading resume file for ID:', actualId)
+                    content = `RESUME_FILE:${actualId}:${file.name}:${file.extension}:${file.size || 0}`
+                } else {
+                    console.warn('Unhandled file type:', { fileType, extension: file.extension })
+                    content = `<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+                        <h2>⚠️ Unsupported File Type</h2>
+                        <p>File: ${file.name}</p>
+                        <p>Type: ${fileType} | Extension: ${file.extension}</p>
+                    </div>`
                 }
                 
                 // Update file content
@@ -129,7 +138,21 @@ export default function EmailServicePage() {
                 })
             }
         }
-    }
+    }, [openFiles, fileContents, loadingFiles]) // Dependencies for useCallback
+
+    // Listen for file selection events from the sidebar
+    useEffect(() => {
+        const handleFileSelected = (event: CustomEvent) => {
+            console.log('File selection event received:', event.detail)
+            handleFileSelect(event.detail)
+        }
+
+        window.addEventListener('fileSelected', handleFileSelected as EventListener)
+        
+        return () => {
+            window.removeEventListener('fileSelected', handleFileSelected as EventListener)
+        }
+    }, [handleFileSelect])
 
     const handleFileClose = (fileId: string) => {
         setOpenFiles(prev => prev.filter(f => f.id !== fileId))

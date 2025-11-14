@@ -139,7 +139,10 @@ function FileTreeItem({
   // File item
   return (
     <SidebarMenuButton
-      onClick={() => onFileSelect(item)}
+      onClick={() => {
+        console.log('File selected in sidebar:', item)
+        onFileSelect(item)
+      }}
       className={`w-full justify-start pl-${level * 4 + 6} ${
         selectedFileId === item.id ? 'bg-accent' : ''
       }`}
@@ -151,13 +154,16 @@ function FileTreeItem({
 }
 
 // Helper function to convert FolderStructure to TreeItem
-function convertToTreeItem(folderStructure: FolderStructure): TreeItem {
+function convertToTreeItem(folderStructure: FolderStructure, folderType: 'template' | 'resume'): TreeItem {
+  const folderPrefix = folderType === 'template' ? 'TPL_' : 'RES_'
+  
   return {
     id: folderStructure.id || folderStructure.name.toLowerCase(),
     name: folderStructure.name,
     type: 'folder' as const,
     children: folderStructure.children.map(child => ({
       ...child,
+      id: `${folderPrefix}${child.id}`, // Add prefix to distinguish template vs resume files
       children: child.type === 'folder' ? [] : undefined
     }))
   }
@@ -181,8 +187,8 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplor
         ])
 
         const treeItems: TreeItem[] = [
-          convertToTreeItem(templatesData),
-          convertToTreeItem(resumesData)
+          convertToTreeItem(templatesData, 'template'),
+          convertToTreeItem(resumesData, 'resume')
         ]
 
         setFileSystem(treeItems)
