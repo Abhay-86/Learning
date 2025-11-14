@@ -75,7 +75,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
         </div>
         
         <div className="flex gap-2">
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             onClick={() => {
@@ -87,7 +87,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
           >
             <Eye className="h-4 w-4 mr-2" />
             Preview
-          </Button>
+          </Button> */}
           
           <Button
             variant="outline"
@@ -108,7 +108,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
             Open in New Tab
           </Button>
           
-          {fileExtension?.toLowerCase() === 'pdf' && (
+          {/* {fileExtension?.toLowerCase() === 'pdf' && (
             <Button
               variant="outline"
               size="sm"
@@ -118,7 +118,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
               <FileText className="h-4 w-4 mr-2" />
               PDF.js Viewer
             </Button>
-          )}
+          )} */}
         </div>
       </div>
 
@@ -199,25 +199,25 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                     </div>
                   </div>
                 ) : (
-                  <div className="resume-viewer-container w-full h-full min-h-0">
+                  <div className="resume-viewer-container w-full h-full flex justify-center items-start">
                     {/* Try object element first, then iframe as fallback */}
                     <object
                       data={embedUrl}
                       type="application/pdf"
-                      className="w-full h-full border-0 min-h-0"
+                      className=" border-0"
                       title={`Preview of ${fileName}`}
                       onLoad={handleIframeLoad}
                       onError={handleIframeError}
-                      style={{ minHeight: '70vh' }}
+                      style={{ height: '100%', width: '70%' }}
                     >
                       <iframe
                         src={embedUrl}
-                        className="w-full h-full border-0 min-h-0"
+                        className="border-0"
                         title={`Preview of ${fileName}`}
                         onLoad={handleIframeLoad}
                         onError={handleIframeError}
                         sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                        style={{ minHeight: '70vh' }}
+                        style={{ height: '1000%', width: '70%' }}
                       />
                     </object>
                   </div>
