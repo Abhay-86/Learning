@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Download, Eye, FileText, ExternalLink } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Download, Eye, FileText, ExternalLink, AlertCircle, RefreshCw } from "lucide-react"
 import { downloadResume, getResumePreviewUrl } from "@/services/referly/resumeApi"
 
 interface ResumeViewerProps {
@@ -16,6 +17,8 @@ interface ResumeViewerProps {
 export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: ResumeViewerProps) {
   const [viewMode, setViewMode] = useState<'preview' | 'download'>('preview')
   const [isLoading, setIsLoading] = useState(false)
+  const [iframeError, setIframeError] = useState(false)
+  const [isIframeLoading, setIsIframeLoading] = useState(true)
 
   const handleDownload = () => {
     setIsLoading(true)
@@ -27,6 +30,28 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
   }
 
   const previewUrl = getResumePreviewUrl(resumeId)
+  
+  // Enhanced preview URL with embed parameters for better iframe support
+  const embedUrl = `${previewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&embedded=true`
+  
+  // Google Docs Viewer fallback (often works better with CORS restrictions)
+  const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true`
+  
+  const handleIframeLoad = () => {
+    setIsIframeLoading(false)
+    setIframeError(false)
+  }
+  
+  const handleIframeError = () => {
+    setIsIframeLoading(false)
+    setIframeError(true)
+    console.log('Iframe failed to load, URL:', embedUrl)
+  }
+  
+  const retryPreview = () => {
+    setIframeError(false)
+    setIsIframeLoading(true)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -46,7 +71,11 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setViewMode('preview')}
+            onClick={() => {
+              setViewMode('preview')
+              setIframeError(false)
+              setIsIframeLoading(true)
+            }}
             className={viewMode === 'preview' ? 'bg-primary text-primary-foreground' : ''}
           >
             <Eye className="h-4 w-4 mr-2" />
@@ -71,19 +100,108 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
             <ExternalLink className="h-4 w-4 mr-2" />
             Open in New Tab
           </Button>
+          
+          {fileExtension === 'pdf' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(previewUrl)}`, '_blank')}
+              title="Open with PDF.js viewer"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              PDF.js Viewer
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {viewMode === 'preview' ? (
-          <div className="h-full">
+          <div className="h-full relative">
             {fileExtension === 'pdf' ? (
-              <iframe
-                src={previewUrl}
-                className="w-full h-full border-0"
-                title={`Preview of ${fileName}`}
-              />
+              <>
+                {isIframeLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
+                    <div className="text-center">
+                      <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Loading PDF preview...</p>
+                      <p className="text-xs text-muted-foreground mt-2 max-w-md break-all">
+                        URL: {embedUrl}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {iframeError ? (
+                  <div className="h-full flex flex-col items-center justify-center p-8">
+                    <Alert className="max-w-md">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="mb-4">
+                        <strong>Preview Unavailable</strong><br />
+                        This PDF cannot be displayed in an embedded viewer due to browser security restrictions or server settings.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="mt-6 space-y-3 text-center">
+                      <div className="text-sm text-muted-foreground mb-3">
+                        Try alternative preview methods:
+                      </div>
+                      
+                      <div className="flex flex-col gap-2 max-w-xs mx-auto">
+                        <Button 
+                          onClick={() => {
+                            // Try Google Docs Viewer
+                            const iframe = document.createElement('iframe')
+                            iframe.src = googleViewerUrl
+                            iframe.className = "w-full h-full border-0"
+                            iframe.title = `Google Docs preview of ${fileName}`
+                            const container = document.querySelector('.resume-viewer-container')
+                            if (container) {
+                              container.innerHTML = ''
+                              container.appendChild(iframe)
+                              setIframeError(false)
+                            }
+                          }} 
+                          variant="outline" 
+                          size="sm"
+                          className="w-full"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Try Google Viewer
+                        </Button>
+                        
+                        <Button onClick={retryPreview} variant="outline" size="sm" className="w-full">
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Retry Direct Preview
+                        </Button>
+                        
+                        <Button onClick={() => window.open(previewUrl, '_blank')} size="sm" className="w-full">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Open in New Tab
+                        </Button>
+                        
+                        <Button onClick={handleDownload} disabled={isLoading} variant="secondary" className="w-full">
+                          <Download className="h-4 w-4 mr-2" />
+                          {isLoading ? 'Downloading...' : 'Download PDF'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="resume-viewer-container w-full h-full">
+                    {/* Try iframe with enhanced parameters */}
+                    <iframe
+                      src={embedUrl}
+                      className="w-full h-full border-0"
+                      title={`Preview of ${fileName}`}
+                      onLoad={handleIframeLoad}
+                      onError={handleIframeError}
+                      sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-8">
                 <Card className="p-8 text-center max-w-md">
@@ -92,10 +210,16 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                   <p className="text-muted-foreground mb-4">
                     {fileExtension.toUpperCase()} files cannot be previewed directly in the browser.
                   </p>
-                  <Button onClick={handleDownload} disabled={isLoading}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {isLoading ? 'Downloading...' : 'Download to View'}
-                  </Button>
+                  <div className="space-y-2">
+                    <Button onClick={() => window.open(previewUrl, '_blank')} className="w-full">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in New Tab
+                    </Button>
+                    <Button onClick={handleDownload} disabled={isLoading} variant="outline" className="w-full">
+                      <Download className="h-4 w-4 mr-2" />
+                      {isLoading ? 'Downloading...' : 'Download to View'}
+                    </Button>
+                  </div>
                 </Card>
               </div>
             )}
