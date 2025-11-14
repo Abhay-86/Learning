@@ -20,6 +20,9 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
   const [iframeError, setIframeError] = useState(false)
   const [isIframeLoading, setIsIframeLoading] = useState(true)
 
+  // Debug logging
+  console.log('ResumeViewer props:', { resumeId, fileName, fileExtension, fileSize })
+
   const handleDownload = () => {
     setIsLoading(true)
     try {
@@ -105,7 +108,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
             Open in New Tab
           </Button>
           
-          {fileExtension === 'pdf' && (
+          {fileExtension?.toLowerCase() === 'pdf' && (
             <Button
               variant="outline"
               size="sm"
@@ -123,14 +126,15 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
       <div className="flex-1 overflow-hidden">
         {viewMode === 'preview' ? (
           <div className="h-full relative">
-            {fileExtension === 'pdf' ? (
+            {fileExtension?.toLowerCase() === 'pdf' || fileExtension?.toLowerCase() === 'docx' ? (
               <>
                 {isIframeLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
                     <div className="text-center">
                       <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Loading PDF preview...</p>
+                      <p className="text-sm text-muted-foreground">Loading {fileExtension?.toUpperCase()} preview...</p>
                       <div className="text-xs text-muted-foreground mt-2 max-w-md space-y-1">
+                        <p className="break-all"><strong>Extension:</strong> {fileExtension}</p>
                         <p className="break-all"><strong>File URL:</strong> {fileUrl}</p>
                         <p className="break-all"><strong>Preview URL:</strong> {previewUrl}</p>
                         <p className="break-all"><strong>Embed URL:</strong> {embedUrl}</p>
@@ -145,7 +149,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription className="mb-4">
                         <strong>Preview Unavailable</strong><br />
-                        This PDF cannot be displayed in an embedded viewer due to browser security restrictions or server settings.
+                        This {fileExtension?.toUpperCase()} file cannot be displayed in an embedded viewer due to browser security restrictions or server settings.
                       </AlertDescription>
                     </Alert>
                     

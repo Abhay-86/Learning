@@ -237,6 +237,8 @@ export default function EmailServicePage() {
                                 <div className="flex-1 overflow-hidden">
                                     {(() => {
                                         const [, resumeId, fileName, fileExtension, fileSize] = activeContent.split(':')
+                                        console.log('Parsed resume data:', { resumeId, fileName, fileExtension, fileSize })
+                                        console.log('Full activeContent:', activeContent)
                                         return (
                                             <ResumeViewer
                                                 resumeId={parseInt(resumeId)}
