@@ -73,6 +73,7 @@ MY_APPS = [
     'emails',
     'features',
     'payments',
+    'Referly',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + MY_APPS

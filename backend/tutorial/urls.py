@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/emails/', include('emails.urls')), 
     path('api/', include('features.urls')),
     path('api/payments/', include('payments.urls')),
+    path('api/referly/', include('Referly.urls')),
 
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     # Optional UI:
