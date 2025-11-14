@@ -48,6 +48,9 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
+# Allow iframe embedding for PDF preview
+X_FRAME_OPTIONS = 'ALLOWALL'
+
 
 
 # Application definition

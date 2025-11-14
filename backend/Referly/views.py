@@ -251,6 +251,33 @@ class ResumeEmailFormatView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class ResumeFileView(APIView):
+    """Serve raw resume file for iframe embedding (with proper headers)"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    def get(self, request, resume_id):
+        resume = get_object_or_404(Resume, id=resume_id, user=request.user, is_active=True)
+        
+        if resume.file_extension == 'pdf':
+            # Return raw PDF with iframe-friendly headers
+            response = HttpResponse(resume.file_content, content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{resume.name}.pdf"'
+            
+            # Headers for iframe embedding (since X_FRAME_OPTIONS = "ALLOWALL" in settings)
+            response['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+            response['Access-Control-Allow-Origin'] = '*'  # Allow cross-origin access
+            
+            return response
+            
+        elif resume.file_extension == 'docx':
+            # For DOCX, return the actual file (browsers will handle download)
+            response = HttpResponse(resume.file_content, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            response['Content-Disposition'] = f'inline; filename="{resume.name}.{resume.file_extension}"'
+            return response
+        
+        return Response({"error": "Unsupported file type"}, status=status.HTTP_400_BAD_REQUEST)
+
+
 # User Quota API
 class UserQuotaView(APIView):
     """Get user quota information"""

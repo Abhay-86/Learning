@@ -19,6 +19,7 @@ urlpatterns = [
     path('resumes/', views.ResumeListView.as_view(), name='resume_list'),
     path('resumes/upload/', views.ResumeUploadView.as_view(), name='resume_upload'),
     path('resumes/<int:resume_id>/', views.ResumeDetailView.as_view(), name='resume_detail'),
+    path('resumes/<int:resume_id>/file/', views.ResumeFileView.as_view(), name='resume_file'),
     path('resumes/<int:resume_id>/preview/', views.ResumePreviewView.as_view(), name='resume_preview'),
     path('resumes/<int:resume_id>/download/', views.ResumeDownloadView.as_view(), name='resume_download'),
     path('resumes/<int:resume_id>/email-format/', views.ResumeEmailFormatView.as_view(), name='resume_email_format'),
