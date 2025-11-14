@@ -61,9 +61,9 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-muted/50">
+      <div className="flex items-center justify-between p-3 border-b bg-muted/50 shrink-0">
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-blue-500" />
           <div>
@@ -123,9 +123,9 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-h-0">
         {viewMode === 'preview' ? (
-          <div className="h-full relative">
+          <div className="h-full relative min-h-0">
             {fileExtension?.toLowerCase() === 'pdf' || fileExtension?.toLowerCase() === 'docx' ? (
               <>
                 {isIframeLoading && (
@@ -199,23 +199,25 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                     </div>
                   </div>
                 ) : (
-                  <div className="resume-viewer-container w-full h-full">
+                  <div className="resume-viewer-container w-full h-full min-h-0">
                     {/* Try object element first, then iframe as fallback */}
                     <object
                       data={embedUrl}
                       type="application/pdf"
-                      className="w-full h-full border-0"
+                      className="w-full h-full border-0 min-h-0"
                       title={`Preview of ${fileName}`}
                       onLoad={handleIframeLoad}
                       onError={handleIframeError}
+                      style={{ minHeight: '70vh' }}
                     >
                       <iframe
                         src={embedUrl}
-                        className="w-full h-full border-0"
+                        className="w-full h-full border-0 min-h-0"
                         title={`Preview of ${fileName}`}
                         onLoad={handleIframeLoad}
                         onError={handleIframeError}
                         sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                        style={{ minHeight: '70vh' }}
                       />
                     </object>
                   </div>
