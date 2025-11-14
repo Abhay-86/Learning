@@ -39,15 +39,28 @@ export default function ReferlyPage() {
     const loadFolderStructures = async () => {
         try {
             setLoading(true)
-            const [templatesData, resumesData] = await Promise.all([
-                getTemplatesFolderStructure(),
-                getResumesFolderStructure()
-            ])
-            setTemplatesFolder(templatesData)
-            setResumesFolder(resumesData)
+            console.log('Loading folder structures...')
+            console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/")
+            
+            // Test basic connectivity first
+            try {
+                const [templatesData, resumesData] = await Promise.all([
+                    getTemplatesFolderStructure(),
+                    getResumesFolderStructure()
+                ])
+                console.log('Templates data:', templatesData)
+                console.log('Resumes data:', resumesData)
+                setTemplatesFolder(templatesData)
+                setResumesFolder(resumesData)
+            } catch (apiError) {
+                console.error('API Error details:', apiError)
+                throw apiError
+            }
         } catch (error) {
             console.error('Failed to load folder structures:', error)
-            // You can add error handling/toast here
+            // Show error in UI with more details
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            alert(`Failed to load data: ${errorMessage}\n\nCheck console for details. Make sure:\n1. Django backend is running\n2. You're logged in\n3. You have referly feature access`)
         } finally {
             setLoading(false)
         }
@@ -233,11 +246,11 @@ export default function ReferlyPage() {
                 ) : (
                     /* Welcome Screen */
                     <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
-                        <div>
+                        <div className="max-w-4xl">
                             <div className="text-6xl mb-4">📧</div>
                             <h3 className="text-xl font-semibold mb-2">Referly Studio</h3>
                             <p className="mb-4">Create and preview your email templates and resumes</p>
-                            <div className="text-sm space-y-1">
+                            <div className="text-sm space-y-1 mb-6">
                                 <p>• Select a template from the sidebar to start editing</p>
                                 <p>• Click on resume files to preview them</p>
                                 <p>• Create new templates and upload resumes</p>
@@ -246,6 +259,61 @@ export default function ReferlyPage() {
                                 )}
                                 {resumesFolder && (
                                     <p className="text-blue-600">Resumes: {resumesFolder.usage}</p>
+                                )}
+                            </div>
+
+                            {/* Debug: Show folder structure data */}
+                            <div className="mt-8 text-left bg-gray-50 p-4 rounded-lg">
+                                <h4 className="font-semibold mb-2">Debug - Folder Structures:</h4>
+                                
+                                {templatesFolder && (
+                                    <div className="mb-4">
+                                        <h5 className="font-medium text-green-600">Templates ({templatesFolder.children.length} items):</h5>
+                                        <div className="ml-4 space-y-1">
+                                            {templatesFolder.children.map((item) => (
+                                                <div key={item.id} className="text-sm">
+                                                    <button 
+                                                        onClick={() => handleFileSelect(item)}
+                                                        className="text-blue-600 hover:underline"
+                                                    >
+                                                        📄 {item.display_name || item.name}
+                                                    </button>
+                                                    <span className="text-gray-500 ml-2">({item.id})</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {resumesFolder && (
+                                    <div className="mb-4">
+                                        <h5 className="font-medium text-blue-600">Resumes ({resumesFolder.children.length} items):</h5>
+                                        <div className="ml-4 space-y-1">
+                                            {resumesFolder.children.map((item) => (
+                                                <div key={item.id} className="text-sm">
+                                                    <button 
+                                                        onClick={() => handleFileSelect(item)}
+                                                        className="text-blue-600 hover:underline"
+                                                    >
+                                                        📄 {item.display_name || item.name}
+                                                    </button>
+                                                    <span className="text-gray-500 ml-2">({item.id})</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!templatesFolder && !resumesFolder && (
+                                    <div>
+                                        <p className="text-red-500 mb-2">No folder data loaded yet</p>
+                                        <button 
+                                            onClick={loadFolderStructures}
+                                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                        >
+                                            Retry Loading Data
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
