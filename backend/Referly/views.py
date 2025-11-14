@@ -259,13 +259,20 @@ class ResumeFileView(APIView):
         resume = get_object_or_404(Resume, id=resume_id, user=request.user, is_active=True)
         
         if resume.file_extension == 'pdf':
-            # Return raw PDF with iframe-friendly headers
+            # Return raw PDF with Chrome-compatible headers
             response = HttpResponse(resume.file_content, content_type='application/pdf')
             response['Content-Disposition'] = f'inline; filename="{resume.name}.pdf"'
             
-            # Headers for iframe embedding (since X_FRAME_OPTIONS = "ALLOWALL" in settings)
-            response['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
-            response['Access-Control-Allow-Origin'] = '*'  # Allow cross-origin access
+            # Chrome-specific headers to allow embedding
+            response['X-Frame-Options'] = 'SAMEORIGIN'  # Changed from ALLOWALL to SAMEORIGIN
+            response['Content-Security-Policy'] = "frame-ancestors 'self' http://localhost:3000 https://localhost:3000"
+            response['Cache-Control'] = 'public, max-age=3600'
+            response['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+            response['Access-Control-Allow-Credentials'] = 'true'
+            
+            # Remove problematic headers that Chrome might block
+            # response['Cross-Origin-Embedder-Policy'] = 'unsafe-none'
+            # response['Cross-Origin-Resource-Policy'] = 'cross-origin'
             
             return response
             

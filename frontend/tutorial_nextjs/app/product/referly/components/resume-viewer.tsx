@@ -52,7 +52,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
   const handleIframeError = () => {
     setIsIframeLoading(false)
     setIframeError(true)
-    console.log('Iframe failed to load, URL:', embedUrl)
+    console.log('Iframe failed to load (likely blocked by Chrome), URL:', embedUrl)
   }
   
   const retryPreview = () => {
@@ -148,8 +148,8 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                     <Alert className="max-w-md">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription className="mb-4">
-                        <strong>Preview Unavailable</strong><br />
-                        This {fileExtension?.toUpperCase()} file cannot be displayed in an embedded viewer due to browser security restrictions or server settings.
+                        <strong>Chrome Security Block</strong><br />
+                        This {fileExtension?.toUpperCase()} file has been blocked by Chrome's security policy for iframe embedding. You can still view it using the options below.
                       </AlertDescription>
                     </Alert>
                     
@@ -200,15 +200,24 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                   </div>
                 ) : (
                   <div className="resume-viewer-container w-full h-full">
-                    {/* Try iframe with enhanced parameters */}
-                    <iframe
-                      src={embedUrl}
+                    {/* Try object element first, then iframe as fallback */}
+                    <object
+                      data={embedUrl}
+                      type="application/pdf"
                       className="w-full h-full border-0"
                       title={`Preview of ${fileName}`}
                       onLoad={handleIframeLoad}
                       onError={handleIframeError}
-                      sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                    />
+                    >
+                      <iframe
+                        src={embedUrl}
+                        className="w-full h-full border-0"
+                        title={`Preview of ${fileName}`}
+                        onLoad={handleIframeLoad}
+                        onError={handleIframeError}
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                      />
+                    </object>
                   </div>
                 )}
               </>
