@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Eye, Smartphone, Monitor, Tablet } from "lucide-react"
+import { Eye, Smartphone, Monitor, Tablet, RefreshCw } from "lucide-react"
 
 interface PreviewPanelProps {
   htmlContent: string
@@ -13,6 +13,35 @@ type DeviceMode = 'desktop' | 'tablet' | 'mobile'
 
 export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop')
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  // Debounced iframe refresh when content changes
+  useEffect(() => {
+    if (iframeRef.current && htmlContent) {
+      const timer = setTimeout(() => {
+        const iframe = iframeRef.current
+        if (iframe) {
+          iframe.srcDoc = htmlContent
+        }
+      }, 100) // Small delay to avoid too many updates
+      
+      return () => clearTimeout(timer)
+    }
+  }, [htmlContent])
+
+  // Manual refresh function
+  const handleRefresh = useCallback(() => {
+    if (iframeRef.current) {
+      setIsRefreshing(true)
+      const iframe = iframeRef.current
+      iframe.srcDoc = htmlContent
+      
+      setTimeout(() => {
+        setIsRefreshing(false)
+      }, 500)
+    }
+  }, [htmlContent])
 
   const getDeviceWidth = () => {
     switch (deviceMode) {
@@ -36,6 +65,16 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
               • {fileName}
             </span>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Refresh preview"
+            className="h-7 w-7 p-0 ml-2"
+          >
+            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
         
         {/* Device Mode Toggle */}
@@ -80,10 +119,12 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
           >
             {htmlContent ? (
               <iframe
+                ref={iframeRef}
                 srcDoc={htmlContent}
                 className="w-full h-full min-h-[400px] border-0"
                 title="Email Preview"
                 style={{ backgroundColor: 'white' }}
+                sandbox="allow-same-origin allow-scripts"
               />
             ) : (
               <div className="flex items-center justify-center h-64 text-muted-foreground">

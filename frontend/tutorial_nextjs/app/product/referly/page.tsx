@@ -210,7 +210,7 @@ export default function EmailServicePage() {
             })
             toast.success('Template saved successfully!')
             
-            // Mark as saved (no loading state needed for this simple update)
+            // Mark as saved and clear dirty state
             if (activeFileId) {
                 setFileContents(prev => ({
                     ...prev,
@@ -219,6 +219,13 @@ export default function EmailServicePage() {
                         error: null
                     }
                 }))
+                
+                // Clear the orange dot by setting isDirty to false
+                setOpenFiles(prev => prev.map(f => 
+                    f.id === activeFileId 
+                        ? { ...f, isDirty: false }
+                        : f
+                ))
             }
         } catch (error) {
             console.error('Save error:', error)
