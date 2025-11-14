@@ -17,8 +17,8 @@ export async function getTemplate(templateId: number): Promise<Template> {
 }
 
 export async function getTemplateContent(templateId: number): Promise<{ html_content: string }> {
-    const response = await axiosInstance.get(`referly/templates/${templateId}/content/`);
-    return response.data;
+    const response = await axiosInstance.get(`referly/templates/${templateId}/`);
+    return { html_content: response.data.html_content };
 }
 
 export async function updateTemplate(templateId: number, payload: TemplateUpdatePayload): Promise<{ message: string; data: Template }> {

@@ -77,7 +77,9 @@ export default function EmailServicePage() {
                 
                 if (file.extension === 'html') {
                     // Load template content
+                    console.log('Loading template content for file:', file)
                     const templateData = await getTemplateContent(parseInt(file.id))
+                    console.log('Loaded template data:', templateData)
                     content = templateData.html_content
                 } else if (file.extension === 'pdf' || file.extension === 'docx') {
                     // For resume files, we'll use the ResumeViewer component
