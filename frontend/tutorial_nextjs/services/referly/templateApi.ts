@@ -17,11 +17,21 @@ export async function getTemplate(templateId: number): Promise<Template> {
 }
 
 export async function getTemplateContent(templateId: number): Promise<{ html_content: string }> {
+    if (!templateId || isNaN(templateId) || templateId <= 0) {
+        throw new Error(`Invalid template ID: ${templateId}. Must be a positive number.`);
+    }
+    
+    console.log('API: Fetching template content for ID:', templateId);
     const response = await axiosInstance.get(`referly/templates/${templateId}/content/`);
     return response.data;
 }
 
 export async function updateTemplate(templateId: number, payload: TemplateUpdatePayload): Promise<{ message: string; data: Template }> {
+    if (!templateId || isNaN(templateId) || templateId <= 0) {
+        throw new Error(`Invalid template ID: ${templateId}. Must be a positive number.`);
+    }
+    
+    console.log('API: Updating template ID:', templateId, 'with payload:', payload);
     const response = await axiosInstance.put(`referly/templates/${templateId}/`, payload);
     return response.data;
 }

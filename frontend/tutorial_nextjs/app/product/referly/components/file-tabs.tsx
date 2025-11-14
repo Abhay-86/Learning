@@ -61,7 +61,7 @@ export function FileTabs({ openFiles, activeFileId, onFileSelect, onFileClose }:
             <span className="text-sm truncate">
               {file.name}
               {file.isDirty && (
-                <span className="ml-1 text-orange-500">●</span>
+                <span className="ml-1 text-orange-500 animate-pulse" title="Unsaved changes">●</span>
               )}
             </span>
           </button>

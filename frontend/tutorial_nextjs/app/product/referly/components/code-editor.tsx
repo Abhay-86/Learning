@@ -9,14 +9,32 @@ interface CodeEditorProps {
   onChange: (content: string) => void
   fileName?: string
   language?: string
+  onSave?: () => void
+  isSaving?: boolean
+  isDirty?: boolean
 }
 
-export function CodeEditor({ content, onChange, fileName, language = 'html' }: CodeEditorProps) {
+export function CodeEditor({ content, onChange, fileName, language = 'html', onSave, isSaving = false, isDirty = false }: CodeEditorProps) {
   const [editorContent, setEditorContent] = useState(content)
 
   useEffect(() => {
     setEditorContent(content)
   }, [content])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (onSave && isDirty && !isSaving) {
+          onSave()
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onSave, isDirty, isSaving])
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value
@@ -25,8 +43,9 @@ export function CodeEditor({ content, onChange, fileName, language = 'html' }: C
   }
 
   const handleSave = () => {
-    // TODO: Implement save functionality
-    console.log('Saving file:', fileName, editorContent)
+    if (onSave && !isSaving) {
+      onSave()
+    }
   }
 
   const handleCopy = () => {
@@ -57,8 +76,15 @@ export function CodeEditor({ content, onChange, fileName, language = 'html' }: C
           <Button size="sm" variant="ghost" onClick={handleCopy}>
             <Copy className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={handleSave}>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleSave}
+            disabled={!onSave || !isDirty || isSaving}
+            className={isDirty ? 'text-orange-500' : ''}
+          >
             <Save className="h-4 w-4" />
+            {isSaving && <span className="ml-1 text-xs">Saving...</span>}
           </Button>
           <Button size="sm" variant="default" onClick={handleCompile}>
             <Play className="h-4 w-4 mr-1" />

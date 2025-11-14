@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { 
   Folder, 
   FolderOpen, 
@@ -22,40 +22,14 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { getTemplatesFolderStructure, getResumesFolderStructure } from "@/services/referly"
+import { FolderStructure, FolderItem } from "@/types/types"
 
-interface FileItem {
-  id: string
-  name: string
-  type: 'file' | 'folder'
-  extension?: string
-  children?: FileItem[]
-}
-
-// Dummy data structure
-const dummyFileSystem: FileItem[] = [
-  {
-    id: 'templates',
-    name: 'Templates',
-    type: 'folder',
-    children: [
-      { id: 'template1', name: 'welcome.html', type: 'file', extension: 'html' },
-      { id: 'template2', name: 'job-application.html', type: 'file', extension: 'html' },
-      { id: 'template3', name: 'follow-up.html', type: 'file', extension: 'html' },
-    ]
-  },
-  {
-    id: 'resume',
-    name: 'Resume',
-    type: 'folder',
-    children: [
-      { id: 'resume1', name: 'resume-2024.pdf', type: 'file', extension: 'pdf' },
-      { id: 'resume2', name: 'cover-letter.docx', type: 'file', extension: 'docx' },
-    ]
-  }
-]
+// Use FolderItem from types instead of local interface
+// This matches the API response structure
 
 interface FileExplorerProps {
-  onFileSelect: (file: FileItem) => void
+  onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
 }
 
@@ -77,16 +51,21 @@ function FileTreeItem({
   item, 
   onFileSelect, 
   selectedFileId, 
-  level = 0 
+  level = 0,
+  isFolder = false,
+  usage = ''
 }: { 
-  item: FileItem
-  onFileSelect: (file: FileItem) => void
+  item: FolderItem | FolderStructure
+  onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
-  level?: number 
+  level?: number
+  isFolder?: boolean
+  usage?: string
 }) {
   const [isOpen, setIsOpen] = useState(true)
   
-  if (item.type === 'folder') {
+  if (isFolder || item.type === 'folder') {
+    const folderData = item as FolderStructure
     return (
       <div>
         <SidebarMenuButton
@@ -103,12 +82,15 @@ function FileTreeItem({
           ) : (
             <Folder className="h-4 w-4 text-blue-500" />
           )}
-          <span>{item.name}</span>
+          <span>{folderData.name}</span>
+          {usage && (
+            <span className="ml-auto text-xs text-muted-foreground">{usage}</span>
+          )}
         </SidebarMenuButton>
         
-        {isOpen && item.children && (
+        {isOpen && folderData.children && (
           <div className="ml-4">
-            {item.children.map((child) => (
+            {folderData.children.map((child) => (
               <FileTreeItem
                 key={child.id}
                 item={child}
@@ -120,7 +102,7 @@ function FileTreeItem({
             
             {/* Action buttons for each folder */}
             <div className="flex gap-1 mt-2 ml-2">
-              {item.id === 'templates' && (
+              {folderData.name === 'Templates' && folderData.can_create && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -135,7 +117,7 @@ function FileTreeItem({
                 </Button>
               )}
               
-              {item.id === 'resume' && (
+              {folderData.name === 'Resumes' && folderData.can_create && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -157,39 +139,96 @@ function FileTreeItem({
   }
   
   // File item
+  const fileItem = item as FolderItem
   return (
     <SidebarMenuButton
-      onClick={() => onFileSelect(item)}
+      onClick={() => onFileSelect(fileItem)}
       className={`w-full justify-start pl-${level * 4 + 6} ${
-        selectedFileId === item.id ? 'bg-accent' : ''
+        selectedFileId === fileItem.id ? 'bg-accent' : ''
       }`}
     >
-      <FileIcon extension={item.extension} />
-      <span className="text-sm">{item.name}</span>
+      <FileIcon extension={fileItem.extension} />
+      <span className="text-sm">{fileItem.display_name || fileItem.name}</span>
+      {fileItem.size && (
+        <span className="ml-auto text-xs text-muted-foreground">
+          {fileItem.size_formatted || `${Math.round(fileItem.size / 1024)}KB`}
+        </span>
+      )}
     </SidebarMenuButton>
   )
 }
 
 export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplorerProps) {
+  const [templatesFolder, setTemplatesFolder] = useState<FolderStructure | null>(null)
+  const [resumesFolder, setResumesFolder] = useState<FolderStructure | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadFolderStructures = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const [templatesData, resumesData] = await Promise.all([
+          getTemplatesFolderStructure(),
+          getResumesFolderStructure()
+        ])
+        setTemplatesFolder(templatesData)
+        setResumesFolder(resumesData)
+      } catch (err) {
+        console.error('Failed to load folder structures in sidebar:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFolderStructures()
+  }, [])
+
   return (
     <Sidebar style={{ top: '4rem', height: 'calc(100vh - 4rem)' } as React.CSSProperties}>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sm font-semibold">
-            Email Service Files
+            Referly Files
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {dummyFileSystem.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <FileTreeItem
-                    item={item}
-                    onFileSelect={onFileSelect}
-                    selectedFileId={selectedFileId}
-                  />
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {loading ? (
+              <div className="p-4 text-center text-muted-foreground">
+                <div className="animate-pulse">Loading...</div>
+              </div>
+            ) : error ? (
+              <div className="p-4 text-center text-red-500 text-sm">
+                <div>Failed to load files</div>
+                <div className="text-xs mt-1">{error}</div>
+              </div>
+            ) : (
+              <SidebarMenu>
+                {templatesFolder && (
+                  <SidebarMenuItem key={templatesFolder.id}>
+                    <FileTreeItem
+                      item={templatesFolder}
+                      onFileSelect={onFileSelect}
+                      selectedFileId={selectedFileId}
+                      isFolder={true}
+                      usage={templatesFolder.usage}
+                    />
+                  </SidebarMenuItem>
+                )}
+                {resumesFolder && (
+                  <SidebarMenuItem key={resumesFolder.id}>
+                    <FileTreeItem
+                      item={resumesFolder}
+                      onFileSelect={onFileSelect}
+                      selectedFileId={selectedFileId}
+                      isFolder={true}
+                      usage={resumesFolder.usage}
+                    />
+                  </SidebarMenuItem>
+                )}
+              </SidebarMenu>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

@@ -17,6 +17,8 @@ export default function ReferlyPage() {
     const [loading, setLoading] = useState(true)
     const [loadingTemplate, setLoadingTemplate] = useState<string | null>(null)
     const [resumePreview, setResumePreview] = useState<{ id: string; name: string; url: string } | null>(null)
+    const [savingFile, setSavingFile] = useState<string | null>(null)
+    const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
     // Load folder structures on component mount
     useEffect(() => {
@@ -35,6 +37,23 @@ export default function ReferlyPage() {
             window.removeEventListener('fileSelected', handleFileSelected as EventListener)
         }
     }, [openFiles])
+
+    // Auto-save functionality (save after 2 seconds of inactivity)
+    useEffect(() => {
+        if (!activeFileId) return
+
+        const activeFile = openFiles.find(f => f.id === activeFileId)
+        if (!activeFile?.isDirty) return
+
+        const autoSaveTimer = setTimeout(() => {
+            if (activeFile.extension === 'html') {
+                console.log('Auto-saving template:', activeFile.name)
+                handleSaveTemplate(activeFileId)
+            }
+        }, 2000)
+
+        return () => clearTimeout(autoSaveTimer)
+    }, [fileContents, activeFileId, openFiles])
 
     const loadFolderStructures = async () => {
         try {
@@ -90,6 +109,8 @@ export default function ReferlyPage() {
     }
 
     const handleFileSelect = async (file: FolderItem) => {
+        console.log('File selected:', file)
+        
         if (file.type === 'file' && file.extension === 'html') {
             // Template file selected
             const existingFile = openFiles.find(f => f.id === file.id)
@@ -100,7 +121,16 @@ export default function ReferlyPage() {
             } else {
                 try {
                     // Extract template ID from file.id (format: "template_123")
-                    const templateId = parseInt(file.id.replace('template_', ''))
+                    console.log('Raw file ID:', file.id)
+                    const idString = file.id.replace('template_', '')
+                    console.log('ID string after replace:', idString)
+                    const templateId = parseInt(idString)
+                    console.log('Parsed template ID:', templateId)
+                    
+                    if (isNaN(templateId)) {
+                        throw new Error(`Invalid template ID: ${file.id}. Expected format: template_123`)
+                    }
+                    
                     const content = await loadTemplateContent(templateId)
                     
                     const newFile: OpenFile = {
@@ -121,7 +151,16 @@ export default function ReferlyPage() {
             }
         } else if (file.extension === 'pdf' || file.extension === 'docx') {
             // Resume file selected - show preview
-            const resumeId = parseInt(file.id.replace('resume_', ''))
+            console.log('Resume selected:', file.id)
+            const idString = file.id.replace('resume_', '')
+            const resumeId = parseInt(idString)
+            console.log('Parsed resume ID:', resumeId)
+            
+            if (isNaN(resumeId)) {
+                console.error(`Invalid resume ID: ${file.id}. Expected format: resume_123`)
+                return
+            }
+            
             handleResumePreview(resumeId, file.display_name || file.name)
             setActiveFileId(undefined) // Clear active template when resume is selected
         }
@@ -156,8 +195,18 @@ export default function ReferlyPage() {
 
     const handleSaveTemplate = async (fileId: string) => {
         try {
+            setSavingFile(fileId)
+            setSaveStatus(null)
+            
             const content = fileContents[fileId]
-            const templateId = parseInt(fileId.replace('template_', ''))
+            const idString = fileId.replace('template_', '')
+            const templateId = parseInt(idString)
+            
+            console.log('Saving template - File ID:', fileId, 'Parsed ID:', templateId)
+            
+            if (isNaN(templateId)) {
+                throw new Error(`Invalid template ID for saving: ${fileId}`)
+            }
             
             await updateTemplate(templateId, { html_content: content })
             
@@ -168,11 +217,16 @@ export default function ReferlyPage() {
                     : f
             ))
             
-            console.log('Template saved successfully')
-            // You can add success toast here
+            setSaveStatus({ type: 'success', message: 'Template saved successfully!' })
+            
+            // Clear success message after 3 seconds
+            setTimeout(() => setSaveStatus(null), 3000)
         } catch (error) {
             console.error('Failed to save template:', error)
-            // You can add error handling/toast here
+            const errorMessage = error instanceof Error ? error.message : 'Failed to save template'
+            setSaveStatus({ type: 'error', message: errorMessage })
+        } finally {
+            setSavingFile(null)
         }
     }
 
@@ -189,6 +243,17 @@ export default function ReferlyPage() {
                     onFileSelect={setActiveFileId}
                     onFileClose={handleFileClose}
                 />
+                
+                {/* Save Status Bar */}
+                {saveStatus && (
+                    <div className={`px-4 py-2 text-sm border-b ${
+                        saveStatus.type === 'success' 
+                            ? 'bg-green-50 text-green-700 border-green-200' 
+                            : 'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                        {saveStatus.message}
+                    </div>
+                )}
             </div>
             
             {/* Main Content Area - Resizable Split Screen */}
@@ -215,6 +280,9 @@ export default function ReferlyPage() {
                             onChange={handleContentChange}
                             fileName={activeFile.name}
                             language={activeFile.extension}
+                            onSave={() => handleSaveTemplate(activeFile.id)}
+                            isSaving={savingFile === activeFile.id}
+                            isDirty={activeFile.isDirty}
                         />
                         
                         {/* Preview Panel - Bottom Panel (Resizable) */}
