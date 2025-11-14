@@ -83,3 +83,82 @@ export interface ToggleFeaturePayload {
   feature_id: number;
   is_active: boolean;
 }
+
+// Referly Types
+export interface Template {
+  id: number;
+  user_id: number;
+  name: string;
+  html_content: string;
+  created_at: string;
+  updated_at: string;
+  size: number;
+}
+
+export interface Resume {
+  id: number;
+  user_id: number;
+  name: string;
+  file_extension: string;
+  file_size: number;
+  display_name: string;
+  size_formatted: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserQuota {
+  max_templates: number;
+  max_resumes: number;
+  current_templates: number;
+  current_resumes: number;
+  can_create_template: boolean;
+  can_create_resume: boolean;
+  templates_remaining: number;
+  resumes_remaining: number;
+}
+
+export interface FolderItem {
+  id: string;
+  user_id?: number;
+  name: string;
+  display_name?: string;
+  type: 'file' | 'folder';
+  extension?: string;
+  created_at?: string;
+  updated_at?: string;
+  size?: number;
+  size_formatted?: string;
+}
+
+export interface FolderStructure {
+  name: string;
+  type: 'folder';
+  id?: string;
+  usage?: string;
+  can_create?: boolean;
+  children: FolderItem[];
+}
+
+export interface TemplateCreatePayload {
+  name: string;
+  html_content: string;
+}
+
+export interface TemplateUpdatePayload {
+  html_content: string;
+}
+
+export interface ResumeUploadPayload {
+  name: string;
+  file: File;
+}
+
+export interface ResumePreview {
+  id: number;
+  name: string;
+  file_extension: string;
+  base64_content: string;
+  mime_type: string;
+  file_size: number;
+}
