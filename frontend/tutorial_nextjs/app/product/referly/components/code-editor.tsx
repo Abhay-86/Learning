@@ -60,10 +60,10 @@ export function CodeEditor({ content, onChange, fileName, language = 'html' }: C
           <Button size="sm" variant="ghost" onClick={handleSave}>
             <Save className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="default" onClick={handleCompile}>
+          {/* <Button size="sm" variant="default" onClick={handleCompile}>
             <Play className="h-4 w-4 mr-1" />
             Preview
-          </Button>
+          </Button> */}
         </div>
       </div>
 

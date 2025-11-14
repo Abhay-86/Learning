@@ -220,21 +220,10 @@ export default function EmailServicePage() {
                             </div>
                         </div>
                     ) : (
-                        <ResizablePanels 
-                            defaultSizePercentage={activeFile.extension === 'html' ? 55 : 100}
-                            minSizePercentage={25}
-                            maxSizePercentage={75}
-                        >
-                            {/* Code Editor - Top Panel (Resizable) - Only for HTML templates */}
-                            {activeFile.extension === 'html' ? (
-                                <CodeEditor
-                                    content={activeContent}
-                                    onChange={handleContentChange}
-                                    fileName={activeFile.name}
-                                    language={activeFile.extension}
-                                />
-                            ) : activeContent.startsWith('RESUME_FILE:') ? (
-                                <div className="flex-1 overflow-hidden h-full">
+                        <>
+                            {activeContent.startsWith('RESUME_FILE:') ? (
+                                // Resume files - no resizable panels needed, just full viewer
+                                <div className="h-full">
                                     {(() => {
                                         const [, resumeId, fileName, fileExtension, fileSize] = activeContent.split(':')
                                         console.log('Parsed resume data:', { resumeId, fileName, fileExtension, fileSize })
@@ -249,23 +238,35 @@ export default function EmailServicePage() {
                                         )
                                     })()}
                                 </div>
+                            ) : activeFile.extension === 'html' ? (
+                                // HTML templates - resizable panels with editor and preview
+                                <ResizablePanels 
+                                    defaultSizePercentage={55}
+                                    minSizePercentage={25}
+                                    maxSizePercentage={75}
+                                >
+                                    <CodeEditor
+                                        content={activeContent}
+                                        onChange={handleContentChange}
+                                        fileName={activeFile.name}
+                                        language={activeFile.extension}
+                                    />
+                                    
+                                    <PreviewPanel
+                                        htmlContent={activeContent}
+                                        fileName={activeFile.name}
+                                    />
+                                </ResizablePanels>
                             ) : (
-                                <div className="flex-1 overflow-hidden">
+                                // Other file types - just preview panel
+                                <div className="h-full">
                                     <PreviewPanel
                                         htmlContent={activeContent}
                                         fileName={activeFile.name}
                                     />
                                 </div>
                             )}
-                            
-                            {/* Preview Panel - Bottom Panel (Resizable) - Only for HTML templates */}
-                            {activeFile.extension === 'html' && (
-                                <PreviewPanel
-                                    htmlContent={activeContent}
-                                    fileName={activeFile.name}
-                                />
-                            )}
-                        </ResizablePanels>
+                        </>
                     )
                 ) : (
                     /* Welcome Screen */
