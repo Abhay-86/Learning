@@ -145,7 +145,7 @@ function FileTreeItem({
       }`}
     >
       <FileIcon extension={item.extension} />
-      <span className="text-sm">{item.name}</span>
+      <span className="text-sm">{item.display_name || item.name}</span>
     </SidebarMenuButton>
   )
 }
