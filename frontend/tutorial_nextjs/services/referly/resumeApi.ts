@@ -24,6 +24,13 @@ export async function getResume(resumeId: number): Promise<Resume> {
     return response.data;
 }
 
+// Get URL for raw PDF file (for iframe embedding) 
+export function getResumeFileUrl(resumeId: number): string {
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/";
+    return `${baseURL}referly/resumes/${resumeId}/file/`;
+}
+
+// Get URL for JSON preview data (metadata only)
 export function getResumePreviewUrl(resumeId: number): string {
     const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/";
     return `${baseURL}referly/resumes/${resumeId}/preview/`;

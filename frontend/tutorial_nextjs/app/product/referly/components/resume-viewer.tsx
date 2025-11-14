@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Download, Eye, FileText, ExternalLink, AlertCircle, RefreshCw } from "lucide-react"
-import { downloadResume, getResumePreviewUrl } from "@/services/referly/resumeApi"
+import { downloadResume, getResumePreviewUrl, getResumeFileUrl } from "@/services/referly/resumeApi"
 
 interface ResumeViewerProps {
   resumeId: number
@@ -29,13 +29,17 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
     }
   }
 
+  // Raw file URL for iframe embedding (returns actual PDF, not JSON)
+  const fileUrl = getResumeFileUrl(resumeId)
+  
+  // JSON preview URL (for metadata, not for iframe)
   const previewUrl = getResumePreviewUrl(resumeId)
   
-  // Enhanced preview URL with embed parameters for better iframe support
-  const embedUrl = `${previewUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&embedded=true`
+  // Enhanced PDF file URL with embed parameters for better iframe support
+  const embedUrl = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&embedded=true`
   
   // Google Docs Viewer fallback (often works better with CORS restrictions)
-  const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true`
+  const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
   
   const handleIframeLoad = () => {
     setIsIframeLoading(false)
@@ -95,7 +99,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(previewUrl, '_blank')}
+            onClick={() => window.open(fileUrl, '_blank')}
           >
             <ExternalLink className="h-4 w-4 mr-2" />
             Open in New Tab
@@ -105,7 +109,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(previewUrl)}`, '_blank')}
+              onClick={() => window.open(`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}`, '_blank')}
               title="Open with PDF.js viewer"
             >
               <FileText className="h-4 w-4 mr-2" />
@@ -126,9 +130,11 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                     <div className="text-center">
                       <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">Loading PDF preview...</p>
-                      <p className="text-xs text-muted-foreground mt-2 max-w-md break-all">
-                        URL: {embedUrl}
-                      </p>
+                      <div className="text-xs text-muted-foreground mt-2 max-w-md space-y-1">
+                        <p className="break-all"><strong>File URL:</strong> {fileUrl}</p>
+                        <p className="break-all"><strong>Preview URL:</strong> {previewUrl}</p>
+                        <p className="break-all"><strong>Embed URL:</strong> {embedUrl}</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -176,7 +182,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                           Retry Direct Preview
                         </Button>
                         
-                        <Button onClick={() => window.open(previewUrl, '_blank')} size="sm" className="w-full">
+                        <Button onClick={() => window.open(fileUrl, '_blank')} size="sm" className="w-full">
                           <ExternalLink className="h-4 w-4 mr-2" />
                           Open in New Tab
                         </Button>
@@ -211,7 +217,7 @@ export function ResumeViewer({ resumeId, fileName, fileExtension, fileSize }: Re
                     {fileExtension.toUpperCase()} files cannot be previewed directly in the browser.
                   </p>
                   <div className="space-y-2">
-                    <Button onClick={() => window.open(previewUrl, '_blank')} className="w-full">
+                    <Button onClick={() => window.open(fileUrl, '_blank')} className="w-full">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Open in New Tab
                     </Button>
