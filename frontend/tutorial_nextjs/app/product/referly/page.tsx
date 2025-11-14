@@ -85,7 +85,7 @@ export default function EmailServicePage() {
                 } else if ((file.extension === 'pdf' || file.extension === 'docx') && fileType === 'resume') {
                     // For resume files, we'll use the ResumeViewer component
                     console.log('Loading resume file for ID:', actualId)
-                    content = `RESUME_FILE:${actualId}:${file.name}:${file.extension}:${file.size || 0}`
+                    content = `RESUME_FILE:${actualId}:${file.display_name || file.name}:${file.extension}:${file.size || 0}`
                 } else {
                     console.warn('Unhandled file type:', { fileType, extension: file.extension })
                     content = `<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">

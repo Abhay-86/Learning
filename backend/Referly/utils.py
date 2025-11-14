@@ -20,7 +20,7 @@ class FolderStructureManager:
                 {
                     "id": t.id,
                     "user_id": t.user_template_id,
-                    "name": f"Template #{t.user_template_id}: {t.name}.html",
+                    "name": f"Template #{t.user_template_id} - {t.name}.html",
                     "display_name": f"{t.name}.html",
                     "type": "file",
                     "extension": "html",
@@ -47,7 +47,7 @@ class FolderStructureManager:
                 {
                     "id": r.id,
                     "user_id": r.user_resume_id,
-                    "name": f"Resume #{r.user_resume_id}: {r.name}.{r.file_extension}",
+                    "name": f"Resume #{r.user_resume_id} - {r.name}.{r.file_extension}",
                     "display_name": f"{r.name}.{r.file_extension}",
                     "type": "file",
                     "extension": r.file_extension,
