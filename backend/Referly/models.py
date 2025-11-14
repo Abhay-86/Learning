@@ -14,6 +14,7 @@ class Template(models.Model):
     is_active = models.BooleanField(default=True)
     
     class Meta:
+        db_table = 'referly_template'
         unique_together = [['user', 'user_template_id'], ['user', 'name']]
         ordering = ['user', 'user_template_id']
         
@@ -41,6 +42,7 @@ class Resume(models.Model):
     is_active = models.BooleanField(default=True)
     
     class Meta:
+        db_table = 'referly_resume'
         unique_together = [['user', 'user_resume_id'], ['user', 'name']]
         ordering = ['user', 'user_resume_id']
         
@@ -61,6 +63,9 @@ class UserQuota(models.Model):
     max_templates = models.PositiveIntegerField(default=2)
     max_resumes = models.PositiveIntegerField(default=2)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'referly_userquota'
     
     @property
     def current_templates(self):

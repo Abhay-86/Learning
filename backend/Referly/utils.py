@@ -18,7 +18,7 @@ class FolderStructureManager:
             "can_create": quota.can_create_template(),
             "children": [
                 {
-                    "id": f"template_{t.id}",
+                    "id": t.id,
                     "user_id": t.user_template_id,
                     "name": f"Template #{t.user_template_id}: {t.name}.html",
                     "display_name": f"{t.name}.html",
@@ -45,7 +45,7 @@ class FolderStructureManager:
             "can_create": quota.can_create_resume(),
             "children": [
                 {
-                    "id": f"resume_{r.id}",
+                    "id": r.id,
                     "user_id": r.user_resume_id,
                     "name": f"Resume #{r.user_resume_id}: {r.name}.{r.file_extension}",
                     "display_name": f"{r.name}.{r.file_extension}",

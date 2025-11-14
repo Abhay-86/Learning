@@ -95,6 +95,7 @@ class TemplateDetailView(APIView):
     @extend_schema(responses={200: TemplateSerializer})
     def get(self, request, template_id):
         template = self.get_object(template_id, request.user)
+        print('Fetched template:', template)
         serializer = TemplateSerializer(template)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
