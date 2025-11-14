@@ -5,11 +5,12 @@ import { CodeEditor } from "./components/code-editor"
 import { PreviewPanel } from "./components/preview-panel"
 import { FileTabs, OpenFile } from "./components/file-tabs"
 import { ResizablePanels } from "./components/resizable-panels"
-import { getTemplateContent } from "@/services/referly/templateApi"
+import { getTemplateContent, updateTemplate } from "@/services/referly/templateApi"
 import { getResumeEmailFormat, getResumePreviewUrl } from "@/services/referly/resumeApi"
 import { FolderItem } from "@/types/types"
 import { Loader2 } from "lucide-react"
 import { ResumeViewer } from "./components/resume-viewer"
+import { useToast, ToastContainer } from "@/components/ui/toast"
 
 // File content loading states
 interface FileContentState {
@@ -25,6 +26,7 @@ export default function EmailServicePage() {
     const [activeFileId, setActiveFileId] = useState<string>()
     const [fileContents, setFileContents] = useState<FileContentState>({})
     const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
+    const toast = useToast()
 
     const handleFileSelect = useCallback(async (file: FolderItem) => {
         if (file.type === 'file') {
@@ -197,6 +199,44 @@ export default function EmailServicePage() {
     const activeContent = activeContentState?.content || ''
     const isLoadingActiveFile = activeFileId ? loadingFiles.has(activeFileId) : false
 
+    // Extract template ID from activeFile.id (remove TPL_ prefix)
+    const activeTemplateId = activeFile?.id.startsWith('TPL_') ? 
+        parseInt(activeFile.id.replace('TPL_', '')) : undefined
+
+    const handleSaveTemplate = async (templateId: number, content: string) => {
+        try {
+            const response = await updateTemplate(templateId, {
+                html_content: content
+            })
+            toast.success('Template saved successfully!')
+            
+            // Mark as saved (no loading state needed for this simple update)
+            if (activeFileId) {
+                setFileContents(prev => ({
+                    ...prev,
+                    [activeFileId]: {
+                        ...prev[activeFileId],
+                        error: null
+                    }
+                }))
+            }
+        } catch (error) {
+            console.error('Save error:', error)
+            toast.error('Failed to save template. Please try again.')
+            throw error // Re-throw to let CodeEditor handle loading state
+        }
+    }
+
+    const handleCopyFeedback = (success: boolean, message: string) => {
+        if (success) {
+            toast.success(message)
+        } else {
+            toast.error(message)
+        }
+    }
+
+
+
     return (
         <div className="flex flex-col h-full">
             {/* File Tabs */}
@@ -250,6 +290,9 @@ export default function EmailServicePage() {
                                         onChange={handleContentChange}
                                         fileName={activeFile.name}
                                         language={activeFile.extension}
+                                        templateId={activeTemplateId}
+                                        onSave={handleSaveTemplate}
+                                        onCopy={handleCopyFeedback}
                                     />
                                     
                                     <PreviewPanel
@@ -284,6 +327,8 @@ export default function EmailServicePage() {
                     </div>
                 )}
             </div>
+            {/* Toast notifications */}
+            <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
         </div>
     )
 }
