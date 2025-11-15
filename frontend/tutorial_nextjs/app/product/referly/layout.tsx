@@ -30,9 +30,9 @@ export default function EmailServiceLayout({
 
   // Determine active tab based on current pathname
   const getActiveTab = () => {
-    if (pathname === '/product/email_service') return 'home'
-    if (pathname === '/product/email_service/email_dashboard') return 'dashboard'
-    if (pathname === '/product/email_service/send_email') return 'send-email'
+    if (pathname === '/product/referly') return 'home'
+    if (pathname === '/product/referly/email_dashboard') return 'dashboard'
+    if (pathname === '/product/referly/send_email') return 'send-email'
     return 'home' // default
   }
   
@@ -55,17 +55,17 @@ export default function EmailServiceLayout({
                 <Tabs value={getActiveTab()} className="flex-1">
                   <TabsList className="grid w-full max-w-md grid-cols-3">
                     <TabsTrigger value="home" asChild>
-                      <Link href="/product/email_service" className="cursor-pointer">
+                      <Link href="/product/referly" className="cursor-pointer">
                         🏠 Home
                       </Link>
                     </TabsTrigger>
                     <TabsTrigger value="dashboard" asChild>
-                      <Link href="/product/email_service/email_dashboard" className="cursor-pointer">
+                      <Link href="/product/referly/email_dashboard" className="cursor-pointer">
                         📊 Dashboard
                       </Link>
                     </TabsTrigger>
                     <TabsTrigger value="send-email" asChild>
-                      <Link href="/product/email_service/send_email" className="cursor-pointer">
+                      <Link href="/product/referly/send_email" className="cursor-pointer">
                         📧 Send Email
                       </Link>
                     </TabsTrigger>

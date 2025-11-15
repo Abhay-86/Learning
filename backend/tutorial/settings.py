@@ -48,6 +48,9 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
+# Allow iframe embedding for PDF preview (Chrome compatible)
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 
 
 # Application definition
@@ -73,6 +76,7 @@ MY_APPS = [
     'emails',
     'features',
     'payments',
+    'Referly',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + MY_APPS

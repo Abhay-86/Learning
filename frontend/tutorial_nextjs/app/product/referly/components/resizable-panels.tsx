@@ -64,11 +64,11 @@ export function ResizablePanels({
   return (
     <div 
       ref={containerRef}
-      className={`flex flex-col h-full ${className}`}
+      className={`relative h-full ${className}`}
     >
       {/* Top Panel */}
       <div 
-        className="overflow-hidden"
+        className="absolute top-0 left-0 right-0 overflow-hidden"
         style={{ height: `${topHeight}%` }}
       >
         {children[0]}
@@ -77,10 +77,14 @@ export function ResizablePanels({
       {/* Resizer Handle */}
       <div
         className={`
-          relative bg-border hover:bg-primary/20 transition-colors duration-200 cursor-ns-resize
+          absolute left-0 right-0 z-10 bg-border hover:bg-primary/20 transition-colors duration-200 cursor-ns-resize
           ${isDragging ? 'bg-primary/30' : ''}
         `}
-        style={{ height: '4px' }}
+        style={{ 
+          top: `${topHeight}%`, 
+          height: '4px',
+          transform: 'translateY(-2px)' // Center the handle on the boundary
+        }}
         onMouseDown={handleMouseDown}
       >
         {/* Visual indicator dots */}
@@ -99,9 +103,9 @@ export function ResizablePanels({
         />
       </div>
 
-      {/* Bottom Panel */}
+      {/* Bottom Panel - Anchored to bottom */}
       <div 
-        className="flex-1 overflow-hidden"
+        className="absolute bottom-0 left-0 right-0 overflow-hidden"
         style={{ height: `${100 - topHeight}%` }}
       >
         {children[1]}

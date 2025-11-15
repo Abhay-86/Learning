@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from drf_spectacular.utils import extend_schema
 from accounts.models import IsCustomAdmin
-from .serializers import UserFeatureToggleSerializer, UserFeatureSerializer, FeatureCreateSerializer
+from .serializers import UserFeatureToggleSerializer, UserFeatureSerializer, FeatureCreateSerializer, FeatureDeleteSerializer
 from django.contrib.auth.models import User
 
 from .models import Feature, UserFeature
@@ -73,3 +73,27 @@ class FeatureCreateView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class FeatureDeleteView(APIView):
+    """Admin-only endpoint to delete a feature"""
+    permission_classes = [IsAuthenticated, IsCustomAdmin]
+
+    @extend_schema(
+        request=None,
+        responses={200: dict},
+        description="Admin can delete a feature by ID."
+    )
+    def delete(self, request, feature_id):
+        try:
+            feature = Feature.objects.get(id=feature_id)
+        except Feature.DoesNotExist:
+            return Response(
+                {"error": "Feature not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        feature.delete()
+
+        return Response(
+            {"message": "Feature deleted successfully!"}, 
+            status=status.HTTP_200_OK
+        )

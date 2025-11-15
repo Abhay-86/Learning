@@ -66,8 +66,8 @@ class CRMPermission(BaseProductPermission):
 class AIBotPermission(BaseProductPermission):  
     feature_code = 'ai_bot'
 
-class EmailServicePermission(BaseProductPermission):
-    feature_code = 'email_service'
+class ReferlyPermission(BaseProductPermission):
+    feature_code = 'referly'
 
 class TimeTravelPermission(BaseProductPermission):
     feature_code = 'time_travel'

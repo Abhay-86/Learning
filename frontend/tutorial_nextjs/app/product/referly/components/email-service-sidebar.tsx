@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { 
   Folder, 
   FolderOpen, 
@@ -9,7 +9,9 @@ import {
   Upload, 
   ChevronDown, 
   ChevronRight,
-  FileCode
+  FileCode,
+  Loader2,
+  AlertCircle
 } from "lucide-react"
 import {
   Sidebar,
@@ -20,42 +22,20 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { getTemplatesFolderStructure, getResumesFolderStructure } from "@/services/referly/folderApi"
+import { FolderStructure, FolderItem } from "@/types/types"
 
-interface FileItem {
-  id: string
-  name: string
-  type: 'file' | 'folder'
-  extension?: string
-  children?: FileItem[]
+// Extended interface for tree rendering
+interface TreeItem extends FolderItem {
+  children?: TreeItem[]
 }
 
-// Dummy data structure
-const dummyFileSystem: FileItem[] = [
-  {
-    id: 'templates',
-    name: 'Templates',
-    type: 'folder',
-    children: [
-      { id: 'template1', name: 'welcome.html', type: 'file', extension: 'html' },
-      { id: 'template2', name: 'job-application.html', type: 'file', extension: 'html' },
-      { id: 'template3', name: 'follow-up.html', type: 'file', extension: 'html' },
-    ]
-  },
-  {
-    id: 'resume',
-    name: 'Resume',
-    type: 'folder',
-    children: [
-      { id: 'resume1', name: 'resume-2024.pdf', type: 'file', extension: 'pdf' },
-      { id: 'resume2', name: 'cover-letter.docx', type: 'file', extension: 'docx' },
-    ]
-  }
-]
-
 interface FileExplorerProps {
-  onFileSelect: (file: FileItem) => void
+  onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
 }
 
@@ -79,8 +59,8 @@ function FileTreeItem({
   selectedFileId, 
   level = 0 
 }: { 
-  item: FileItem
-  onFileSelect: (file: FileItem) => void
+  item: TreeItem
+  onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
   level?: number 
 }) {
@@ -108,7 +88,7 @@ function FileTreeItem({
         
         {isOpen && item.children && (
           <div className="ml-4">
-            {item.children.map((child) => (
+            {item.children.map((child: TreeItem) => (
               <FileTreeItem
                 key={child.id}
                 item={child}
@@ -159,18 +139,70 @@ function FileTreeItem({
   // File item
   return (
     <SidebarMenuButton
-      onClick={() => onFileSelect(item)}
+      onClick={() => {
+        console.log('File selected in sidebar:', item)
+        onFileSelect(item)
+      }}
       className={`w-full justify-start pl-${level * 4 + 6} ${
         selectedFileId === item.id ? 'bg-accent' : ''
       }`}
     >
       <FileIcon extension={item.extension} />
-      <span className="text-sm">{item.name}</span>
+      <span className="text-sm">{item.display_name || item.name}</span>
     </SidebarMenuButton>
   )
 }
 
+// Helper function to convert FolderStructure to TreeItem
+function convertToTreeItem(folderStructure: FolderStructure, folderType: 'template' | 'resume'): TreeItem {
+  const folderPrefix = folderType === 'template' ? 'TPL_' : 'RES_'
+  
+  return {
+    id: folderStructure.id || folderStructure.name.toLowerCase(),
+    name: folderStructure.name,
+    type: 'folder' as const,
+    children: folderStructure.children.map(child => ({
+      ...child,
+      id: `${folderPrefix}${child.id}`, // Add prefix to distinguish template vs resume files
+      children: child.type === 'folder' ? [] : undefined
+    }))
+  }
+}
+
 export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplorerProps) {
+  const [fileSystem, setFileSystem] = useState<TreeItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadFolderStructures = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Load both templates and resumes folders
+        const [templatesData, resumesData] = await Promise.all([
+          getTemplatesFolderStructure(),
+          getResumesFolderStructure()
+        ])
+
+        const treeItems: TreeItem[] = [
+          convertToTreeItem(templatesData, 'template'),
+          convertToTreeItem(resumesData, 'resume')
+        ]
+
+        setFileSystem(treeItems)
+      } catch (err) {
+        console.error('Failed to load folder structures:', err)
+        setError('Failed to load folders. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFolderStructures()
+  }, [])
+
   return (
     <Sidebar style={{ top: '4rem', height: 'calc(100vh - 4rem)' } as React.CSSProperties}>
       <SidebarContent>
@@ -179,17 +211,32 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplor
             Email Service Files
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {dummyFileSystem.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <FileTreeItem
-                    item={item}
-                    onFileSelect={onFileSelect}
-                    selectedFileId={selectedFileId}
-                  />
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {loading ? (
+              <SidebarMenu>
+                {[1, 2].map((i) => (
+                  <SidebarMenuItem key={i}>
+                    <SidebarMenuSkeleton showIcon />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            ) : error ? (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : (
+              <SidebarMenu>
+                {fileSystem.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <FileTreeItem
+                      item={item}
+                      onFileSelect={onFileSelect}
+                      selectedFileId={selectedFileId}
+                    />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            )}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

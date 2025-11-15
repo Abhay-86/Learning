@@ -2,17 +2,29 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Play, Save, Copy } from "lucide-react"
+import { Play, Save, Copy, Loader2 } from "lucide-react"
 
 interface CodeEditorProps {
   content: string
   onChange: (content: string) => void
   fileName?: string
   language?: string
+  templateId?: number
+  onSave?: (templateId: number, content: string) => Promise<void>
+  onCopy?: (success: boolean, message: string) => void
 }
 
-export function CodeEditor({ content, onChange, fileName, language = 'html' }: CodeEditorProps) {
+export function CodeEditor({ 
+  content, 
+  onChange, 
+  fileName, 
+  language = 'html',
+  templateId,
+  onSave,
+  onCopy
+}: CodeEditorProps) {
   const [editorContent, setEditorContent] = useState(content)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     setEditorContent(content)
@@ -24,13 +36,40 @@ export function CodeEditor({ content, onChange, fileName, language = 'html' }: C
     onChange(newContent)
   }
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    console.log('Saving file:', fileName, editorContent)
+  const handleSave = async () => {
+    if (!templateId || !onSave) {
+      onCopy?.(false, 'No template ID available for saving')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      await onSave(templateId, editorContent)
+    } catch (error) {
+      // Error handling is done in parent component
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(editorContent)
+  const handleCopy = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(editorContent)
+        onCopy?.(true, 'Content copied to clipboard!')
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea')
+        textArea.value = editorContent
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        onCopy?.(true, 'Content copied to clipboard!')
+      }
+    } catch (error) {
+      onCopy?.(false, 'Failed to copy content to clipboard')
+    }
   }
 
   const handleCompile = () => {
@@ -54,16 +93,26 @@ export function CodeEditor({ content, onChange, fileName, language = 'html' }: C
         </div>
         
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={handleCopy}>
+          <Button size="sm" variant="ghost" onClick={handleCopy} title="Copy to clipboard">
             <Copy className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={handleSave}>
-            <Save className="h-4 w-4" />
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleSave}
+            disabled={isSaving || !templateId}
+            title={templateId ? 'Save template' : 'No template selected'}
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
           </Button>
-          <Button size="sm" variant="default" onClick={handleCompile}>
+          {/* <Button size="sm" variant="default" onClick={handleCompile}>
             <Play className="h-4 w-4 mr-1" />
             Preview
-          </Button>
+          </Button> */}
         </div>
       </div>
 

@@ -24,3 +24,6 @@ class UserFeatureToggleSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     feature_id = serializers.IntegerField()
     is_active = serializers.BooleanField()
+
+class FeatureDeleteSerializer(serializers.Serializer):
+    feature_id = serializers.IntegerField()
