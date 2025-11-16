@@ -116,7 +116,8 @@ class TemplateDetailView(APIView):
     def delete(self, request, template_id):
         template = self.get_object(template_id, request.user)
         template.is_active = False  # Soft delete
-        template.save()
+        template.delete()
+        # template.save()
         return Response(
             {"message": "Template deleted successfully!"},
             status=status.HTTP_204_NO_CONTENT
@@ -187,7 +188,8 @@ class ResumeDetailView(APIView):
     def delete(self, request, resume_id):
         resume = self.get_object(resume_id, request.user)
         resume.is_active = False  # Soft delete
-        resume.save()
+        # resume.save()
+        resume.delete()
         return Response(
             {"message": "Resume deleted successfully!"},
             status=status.HTTP_204_NO_CONTENT
