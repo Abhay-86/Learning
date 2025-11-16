@@ -36,8 +36,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getTemplatesFolderStructure, getResumesFolderStructure } from "@/services/referly/folderApi"
 import { FolderStructure, FolderItem } from "@/types/types"
-import { CreateTemplateModal } from "./create-template-modal"
-import { UploadResumeModal } from "./upload-resume-modal"
 
 // Extended interface for tree rendering
 interface TreeItem extends FolderItem {
@@ -83,7 +81,7 @@ function FileTreeItem({
     return (
       <div>
         {/* Folder Header with Action Button */}
-        <div className="flex items-center justify-between hover:bg-accent/30 rounded-md pr-1 py-1">
+        <div className="flex items-center justify-between hover:bg-accent/30 rounded-md pr-2 py-1">
           <SidebarMenuButton
             onClick={() => setIsOpen(!isOpen)}
             className={`flex-1 justify-start pl-${level * 4 + 2} hover:bg-transparent`}
@@ -102,23 +100,37 @@ function FileTreeItem({
           </SidebarMenuButton>
           
           {/* Action buttons - Always visible in right corner */}
-          <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-2 shrink-0">
             {item.id === 'templates' && (
-              <CreateTemplateModal
-                onCreate={(templateData) => {
-                  console.log('Creating template:', templateData)
-                  // TODO: Integrate with coin check and API
+              <Button
+                size="sm"
+                variant="default"
+                className="h-6 w-6 p-0 bg-green-500 hover:bg-green-600 text-white rounded-sm"
+                title="Create New Template"
+                onClick={(e) => {
+                  e.stopPropagation() // Prevent folder collapse
+                  console.log('Create Template button clicked!')
+                  alert('Create Template clicked! 🎉')
                 }}
-              />
+              >
+                <FilePlus className="h-3 w-3" />
+              </Button>
             )}
             
             {item.id === 'resume' && (
-              <UploadResumeModal
-                onUpload={(file) => {
-                  console.log('Uploading resume:', file.name, file.size)
-                  // TODO: Integrate with coin check and API
+              <Button
+                size="sm"
+                variant="default"
+                className="h-6 w-6 p-0 bg-blue-500 hover:bg-blue-600 text-white rounded-sm"
+                title="Upload Resume"
+                onClick={(e) => {
+                  e.stopPropagation() // Prevent folder collapse
+                  console.log('Upload Resume button clicked!')
+                  alert('Upload Resume clicked! 📤')
                 }}
-              />
+              >
+                <Upload className="h-3 w-3" />
+              </Button>
             )}
           </div>
         </div>
