@@ -23,6 +23,8 @@ urlpatterns = [
     path('resumes/<int:resume_id>/preview/', views.ResumePreviewView.as_view(), name='resume_preview'),
     path('resumes/<int:resume_id>/download/', views.ResumeDownloadView.as_view(), name='resume_download'),
     path('resumes/<int:resume_id>/email-format/', views.ResumeEmailFormatView.as_view(), name='resume_email_format'),
+
+    # Increase Template, Resume, and Email Format Limits
     
     # User Quota Endpoint
     path('quota/', views.UserQuotaView.as_view(), name='user_quota'),

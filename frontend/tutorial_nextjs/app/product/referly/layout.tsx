@@ -28,6 +28,18 @@ export default function EmailServiceLayout({
     }
   }
 
+  const handleDeleteFile = (fileId: string, fileType: 'resume' | 'template' = 'resume') => {
+    console.log(`Delete ${fileType} requested for ID:`, fileId)
+    // Dispatch event to refresh the file list
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fileDeleted', { 
+        detail: { fileId, fileType } 
+      }))
+    }
+  }
+
+
+
   // Determine active tab based on current pathname
   const getActiveTab = () => {
     if (pathname === '/product/referly') return 'home'
@@ -42,6 +54,7 @@ export default function EmailServiceLayout({
         <EmailServiceSidebar 
           onFileSelect={handleFileSelect}
           selectedFileId={selectedFileId}
+          onDeleteResume={handleDeleteFile}
         />
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header with Sidebar Toggle and Tabs */}

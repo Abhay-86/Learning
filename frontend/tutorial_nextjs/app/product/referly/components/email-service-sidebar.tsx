@@ -5,13 +5,13 @@ import {
   Folder, 
   FolderOpen, 
   FileText, 
-  FilePlus, 
-  Upload, 
   ChevronDown, 
   ChevronRight,
   FileCode,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  MoreVertical
 } from "lucide-react"
 import {
   Sidebar,
@@ -26,7 +26,15 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { getTemplatesFolderStructure, getResumesFolderStructure } from "@/services/referly/folderApi"
+import { createTemplate, deleteTemplate } from "@/services/referly/templateApi"
+import { uploadResume, deleteResume } from "@/services/referly/resumeApi"
 import { FolderStructure, FolderItem } from "@/types/types"
 
 // Extended interface for tree rendering
@@ -37,6 +45,7 @@ interface TreeItem extends FolderItem {
 interface FileExplorerProps {
   onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
+  onDeleteResume?: (fileId: string, fileType?: 'resume' | 'template') => void
 }
 
 function FileIcon({ extension }: { extension?: string }) {
@@ -57,12 +66,14 @@ function FileTreeItem({
   item, 
   onFileSelect, 
   selectedFileId, 
-  level = 0 
+  level = 0,
+  onDeleteResume
 }: { 
   item: TreeItem
   onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
-  level?: number 
+  level?: number
+  onDeleteResume?: (fileId: string, fileType?: 'resume' | 'template') => void
 }) {
   const [isOpen, setIsOpen] = useState(true)
   
@@ -95,41 +106,9 @@ function FileTreeItem({
                 onFileSelect={onFileSelect}
                 selectedFileId={selectedFileId}
                 level={level + 1}
+                onDeleteResume={onDeleteResume}
               />
             ))}
-            
-            {/* Action buttons for each folder */}
-            <div className="flex gap-1 mt-2 ml-2">
-              {item.id === 'templates' && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => {
-                    // TODO: Implement create template functionality
-                    console.log('Create new template')
-                  }}
-                >
-                  <FilePlus className="h-3 w-3 mr-1" />
-                  New Template
-                </Button>
-              )}
-              
-              {item.id === 'resume' && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => {
-                    // TODO: Implement file upload functionality
-                    console.log('Upload file to resume folder')
-                  }}
-                >
-                  <Upload className="h-3 w-3 mr-1" />
-                  Upload
-                </Button>
-              )}
-            </div>
           </div>
         )}
       </div>
@@ -138,18 +117,52 @@ function FileTreeItem({
   
   // File item
   return (
-    <SidebarMenuButton
-      onClick={() => {
-        console.log('File selected in sidebar:', item)
-        onFileSelect(item)
-      }}
-      className={`w-full justify-start pl-${level * 4 + 6} ${
-        selectedFileId === item.id ? 'bg-accent' : ''
-      }`}
-    >
-      <FileIcon extension={item.extension} />
-      <span className="text-sm">{item.display_name || item.name}</span>
-    </SidebarMenuButton>
+    <div className="flex items-center group hover:bg-accent/50 rounded-md">
+      <SidebarMenuButton
+        onClick={() => {
+          console.log('File selected in sidebar:', item)
+          onFileSelect(item)
+        }}
+        className={`flex-1 justify-start pl-${level * 4 + 6} ${
+          selectedFileId === item.id ? 'bg-accent' : ''
+        }`}
+      >
+        <FileIcon extension={item.extension} />
+        <span className="text-sm">{item.display_name || item.name}</span>
+      </SidebarMenuButton>
+      
+      {/* Delete button for both template and resume files */}
+      {(item.id.startsWith('RES_') || item.id.startsWith('TPL_')) && onDeleteResume && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+            >
+              <MoreVertical className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                const fileId = item.id.replace('RES_', '').replace('TPL_', '')
+                const fileType = item.id.startsWith('RES_') ? 'resume' : 'template'
+                const fileName = item.display_name || item.name
+                
+                if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+                  onDeleteResume(fileId, fileType)
+                }
+              }}
+              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete {item.id.startsWith('RES_') ? 'Resume' : 'Template'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   )
 }
 
@@ -169,37 +182,141 @@ function convertToTreeItem(folderStructure: FolderStructure, folderType: 'templa
   }
 }
 
-export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplorerProps) {
+export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResume }: FileExplorerProps) {
   const [fileSystem, setFileSystem] = useState<TreeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
+  const [isUploadingResume, setIsUploadingResume] = useState(false)
+  const [isDeletingFile, setIsDeletingFile] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    const loadFolderStructures = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        // Load both templates and resumes folders
-        const [templatesData, resumesData] = await Promise.all([
-          getTemplatesFolderStructure(),
-          getResumesFolderStructure()
-        ])
-
-        const treeItems: TreeItem[] = [
-          convertToTreeItem(templatesData, 'template'),
-          convertToTreeItem(resumesData, 'resume')
-        ]
-
-        setFileSystem(treeItems)
-      } catch (err) {
-        console.error('Failed to load folder structures:', err)
-        setError('Failed to load folders. Please try again.')
-      } finally {
-        setLoading(false)
+  const handleDeleteFile = async (fileId: string, fileType: 'resume' | 'template' = 'resume') => {
+    console.log(`Deleting ${fileType}:`, fileId)
+    
+    setIsDeletingFile(true)
+    try {
+      if (fileType === 'resume') {
+        await deleteResume(parseInt(fileId))
+        alert('Resume deleted successfully!')
+      } else {
+        await deleteTemplate(parseInt(fileId))
+        alert('Template deleted successfully!')
       }
+      
+      // Refresh the folder structure to remove deleted file
+      loadFolderStructures()
+      
+      // Also call the parent handler if provided
+      if (onDeleteResume) {
+        onDeleteResume(fileId, fileType)
+      }
+    } catch (error) {
+      console.error(`Failed to delete ${fileType}:`, error)
+      alert(`Failed to delete ${fileType}. Please try again.`)
+    } finally {
+      setIsDeletingFile(false)
+    }
+  }
+
+  const handleCreateTemplate = async () => {
+    const templateName = prompt('Enter template name:')
+    if (!templateName || !templateName.trim()) {
+      return
     }
 
+    setIsCreatingTemplate(true)
+    try {
+      const newTemplate = await createTemplate({
+        name: templateName.trim(),
+        html_content: '<html><body><h1>New Template</h1><p>Start editing your template here...</p></body></html>'
+      })
+      
+      console.log('Template created:', newTemplate)
+      alert(`Template "${templateName}" created successfully! 🎉`)
+      
+      // Refresh the folder structure to show new template
+      loadFolderStructures()
+    } catch (error) {
+      console.error('Failed to create template:', error)
+      alert('Failed to create template. Please try again.')
+    } finally {
+      setIsCreatingTemplate(false)
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a PDF or DOCX file')
+      return
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('File size must be less than 10MB')
+      return
+    }
+
+    setIsUploadingResume(true)
+    try {
+      const uploadResult = await uploadResume({
+        name: file.name,
+        file: file
+      })
+      
+      console.log('Resume uploaded:', uploadResult)
+      alert(`Resume "${file.name}" uploaded successfully! 📤`)
+      
+      // Refresh the folder structure to show new resume
+      loadFolderStructures()
+    } catch (error) {
+      console.error('Failed to upload resume:', error)
+      alert('Failed to upload resume. Please try again.')
+    } finally {
+      setIsUploadingResume(false)
+      // Clear the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const loadFolderStructures = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Load both templates and resumes folders
+      const [templatesData, resumesData] = await Promise.all([
+        getTemplatesFolderStructure(),
+        getResumesFolderStructure()
+      ])
+
+      const treeItems: TreeItem[] = [
+        convertToTreeItem(templatesData, 'template'),
+        convertToTreeItem(resumesData, 'resume')
+      ]
+
+      setFileSystem(treeItems)
+    } catch (err) {
+      console.error('Failed to load folder structures:', err)
+      setError('Failed to load folders. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadFolderStructures()
   }, [])
 
@@ -210,6 +327,59 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplor
           <SidebarGroupLabel className="text-sm font-semibold">
             Email Service Files
           </SidebarGroupLabel>
+          
+          {/* Action Bar - Always visible at the top */}
+          <div className="px-3 py-3 border-b border-border/50">
+            <div className="flex flex-col gap-2">
+              <Button
+                size="sm"
+                className="w-full bg-green-600 hover:bg-green-700 text-white justify-start"
+                onClick={handleCreateTemplate}
+                disabled={isCreatingTemplate}
+              >
+                {isCreatingTemplate ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Create New Template
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                size="sm"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start"
+                onClick={handleUploadClick}
+                disabled={isUploadingResume}
+              >
+                {isUploadingResume ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Folder className="h-4 w-4 mr-2" />
+                    Upload Resume
+                  </>
+                )}
+              </Button>
+              
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.doc"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </div>
+          </div>
+          
           <SidebarGroupContent>
             {loading ? (
               <SidebarMenu>
@@ -232,6 +402,7 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplor
                       item={item}
                       onFileSelect={onFileSelect}
                       selectedFileId={selectedFileId}
+                      onDeleteResume={handleDeleteFile}
                     />
                   </SidebarMenuItem>
                 ))}
