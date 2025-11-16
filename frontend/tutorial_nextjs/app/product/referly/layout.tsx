@@ -28,6 +28,15 @@ export default function EmailServiceLayout({
     }
   }
 
+  const handleDeleteResume = (resumeId: string) => {
+    console.log('Delete resume requested for ID:', resumeId)
+    // TODO: Integrate with API
+    // For now, just dispatch an event to refresh the file list
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('resumeDeleted', { detail: { resumeId } }))
+    }
+  }
+
   // Determine active tab based on current pathname
   const getActiveTab = () => {
     if (pathname === '/product/referly') return 'home'
@@ -42,6 +51,7 @@ export default function EmailServiceLayout({
         <EmailServiceSidebar 
           onFileSelect={handleFileSelect}
           selectedFileId={selectedFileId}
+          onDeleteResume={handleDeleteResume}
         />
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header with Sidebar Toggle and Tabs */}

@@ -11,7 +11,9 @@ import {
   ChevronRight,
   FileCode,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  MoreVertical
 } from "lucide-react"
 import {
   Sidebar,
@@ -26,8 +28,16 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { getTemplatesFolderStructure, getResumesFolderStructure } from "@/services/referly/folderApi"
 import { FolderStructure, FolderItem } from "@/types/types"
+import { CreateTemplateModal } from "./create-template-modal"
+import { UploadResumeModal } from "./upload-resume-modal"
 
 // Extended interface for tree rendering
 interface TreeItem extends FolderItem {
@@ -37,6 +47,7 @@ interface TreeItem extends FolderItem {
 interface FileExplorerProps {
   onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
+  onDeleteResume?: (resumeId: string) => void
 }
 
 function FileIcon({ extension }: { extension?: string }) {
@@ -57,12 +68,14 @@ function FileTreeItem({
   item, 
   onFileSelect, 
   selectedFileId, 
-  level = 0 
+  level = 0,
+  onDeleteResume
 }: { 
   item: TreeItem
   onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
-  level?: number 
+  level?: number
+  onDeleteResume?: (resumeId: string) => void
 }) {
   const [isOpen, setIsOpen] = useState(true)
   
@@ -95,39 +108,28 @@ function FileTreeItem({
                 onFileSelect={onFileSelect}
                 selectedFileId={selectedFileId}
                 level={level + 1}
+                onDeleteResume={onDeleteResume}
               />
             ))}
             
             {/* Action buttons for each folder */}
             <div className="flex gap-1 mt-2 ml-2">
               {item.id === 'templates' && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => {
-                    // TODO: Implement create template functionality
-                    console.log('Create new template')
+                <CreateTemplateModal
+                  onCreate={(templateData) => {
+                    console.log('Creating template:', templateData)
+                    // TODO: Integrate with API
                   }}
-                >
-                  <FilePlus className="h-3 w-3 mr-1" />
-                  New Template
-                </Button>
+                />
               )}
               
               {item.id === 'resume' && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => {
-                    // TODO: Implement file upload functionality
-                    console.log('Upload file to resume folder')
+                <UploadResumeModal
+                  onUpload={(file) => {
+                    console.log('Uploading resume:', file.name, file.size)
+                    // TODO: Integrate with API
                   }}
-                >
-                  <Upload className="h-3 w-3 mr-1" />
-                  Upload
-                </Button>
+                />
               )}
             </div>
           </div>
@@ -138,18 +140,49 @@ function FileTreeItem({
   
   // File item
   return (
-    <SidebarMenuButton
-      onClick={() => {
-        console.log('File selected in sidebar:', item)
-        onFileSelect(item)
-      }}
-      className={`w-full justify-start pl-${level * 4 + 6} ${
-        selectedFileId === item.id ? 'bg-accent' : ''
-      }`}
-    >
-      <FileIcon extension={item.extension} />
-      <span className="text-sm">{item.display_name || item.name}</span>
-    </SidebarMenuButton>
+    <div className="flex items-center group hover:bg-accent/50 rounded-md">
+      <SidebarMenuButton
+        onClick={() => {
+          console.log('File selected in sidebar:', item)
+          onFileSelect(item)
+        }}
+        className={`flex-1 justify-start pl-${level * 4 + 6} ${
+          selectedFileId === item.id ? 'bg-accent' : ''
+        }`}
+      >
+        <FileIcon extension={item.extension} />
+        <span className="text-sm">{item.display_name || item.name}</span>
+      </SidebarMenuButton>
+      
+      {/* Delete button for resume files only */}
+      {item.id.startsWith('RES_') && onDeleteResume && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+            >
+              <MoreVertical className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                const resumeId = item.id.replace('RES_', '')
+                if (confirm(`Are you sure you want to delete "${item.display_name || item.name}"?`)) {
+                  onDeleteResume(resumeId)
+                }
+              }}
+              className="text-red-600 focus:text-red-600 focus:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Resume
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   )
 }
 
@@ -169,10 +202,23 @@ function convertToTreeItem(folderStructure: FolderStructure, folderType: 'templa
   }
 }
 
-export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplorerProps) {
+export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResume }: FileExplorerProps) {
   const [fileSystem, setFileSystem] = useState<TreeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const handleDeleteResume = (resumeId: string) => {
+    console.log('Deleting resume:', resumeId)
+    // TODO: Integrate with API
+    if (onDeleteResume) {
+      onDeleteResume(resumeId)
+    }
+    
+    // For now, show success message
+    alert('Resume deleted successfully!')
+    
+    // TODO: Refresh file system after deletion
+  }
 
   useEffect(() => {
     const loadFolderStructures = async () => {
@@ -232,6 +278,7 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId }: FileExplor
                       item={item}
                       onFileSelect={onFileSelect}
                       selectedFileId={selectedFileId}
+                      onDeleteResume={handleDeleteResume}
                     />
                   </SidebarMenuItem>
                 ))}
