@@ -37,6 +37,8 @@ export default function EmailServiceLayout({
     }
   }
 
+
+
   // Determine active tab based on current pathname
   const getActiveTab = () => {
     if (pathname === '/product/referly') return 'home'

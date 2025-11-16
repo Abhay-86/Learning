@@ -5,8 +5,6 @@ import {
   Folder, 
   FolderOpen, 
   FileText, 
-  FilePlus, 
-  Upload, 
   ChevronDown, 
   ChevronRight,
   FileCode,
@@ -80,60 +78,22 @@ function FileTreeItem({
   if (item.type === 'folder') {
     return (
       <div>
-        {/* Folder Header with Action Button */}
-        <div className="flex items-center justify-between hover:bg-accent/30 rounded-md pr-2 py-1">
-          <SidebarMenuButton
-            onClick={() => setIsOpen(!isOpen)}
-            className={`flex-1 justify-start pl-${level * 4 + 2} hover:bg-transparent`}
-          >
-            {isOpen ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-            {isOpen ? (
-              <FolderOpen className="h-4 w-4 text-blue-500" />
-            ) : (
-              <Folder className="h-4 w-4 text-blue-500" />
-            )}
-            <span>{item.name}</span>
-          </SidebarMenuButton>
-          
-          {/* Action buttons - Always visible in right corner */}
-          <div className="flex items-center gap-2 shrink-0">
-            {item.id === 'templates' && (
-              <Button
-                size="sm"
-                variant="default"
-                className="h-6 w-6 p-0 bg-green-500 hover:bg-green-600 text-white rounded-sm"
-                title="Create New Template"
-                onClick={(e) => {
-                  e.stopPropagation() // Prevent folder collapse
-                  console.log('Create Template button clicked!')
-                  alert('Create Template clicked! 🎉')
-                }}
-              >
-                <FilePlus className="h-3 w-3" />
-              </Button>
-            )}
-            
-            {item.id === 'resume' && (
-              <Button
-                size="sm"
-                variant="default"
-                className="h-6 w-6 p-0 bg-blue-500 hover:bg-blue-600 text-white rounded-sm"
-                title="Upload Resume"
-                onClick={(e) => {
-                  e.stopPropagation() // Prevent folder collapse
-                  console.log('Upload Resume button clicked!')
-                  alert('Upload Resume clicked! 📤')
-                }}
-              >
-                <Upload className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        </div>
+        <SidebarMenuButton
+          onClick={() => setIsOpen(!isOpen)}
+          className={`w-full justify-start pl-${level * 4 + 2}`}
+        >
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+          {isOpen ? (
+            <FolderOpen className="h-4 w-4 text-blue-500" />
+          ) : (
+            <Folder className="h-4 w-4 text-blue-500" />
+          )}
+          <span>{item.name}</span>
+        </SidebarMenuButton>
         
         {isOpen && item.children && (
           <div className="ml-4">
@@ -224,15 +184,10 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
 
   const handleDeleteResume = (resumeId: string) => {
     console.log('Deleting resume:', resumeId)
-    // TODO: Integrate with API
     if (onDeleteResume) {
       onDeleteResume(resumeId)
     }
-    
-    // For now, show success message
     alert('Resume deleted successfully!')
-    
-    // TODO: Refresh file system after deletion
   }
 
   useEffect(() => {
