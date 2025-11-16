@@ -226,6 +226,36 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
           <SidebarGroupLabel className="text-sm font-semibold">
             Email Service Files
           </SidebarGroupLabel>
+          
+          {/* Action Bar - Always visible at the top */}
+          <div className="px-3 py-3 border-b border-border/50">
+            <div className="flex flex-col gap-2">
+              <Button
+                size="sm"
+                className="w-full bg-green-600 hover:bg-green-700 text-white justify-start"
+                onClick={() => {
+                  console.log('Create Template clicked!')
+                  alert('Create Template modal will open here! 🎨')
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Create New Template
+              </Button>
+              
+              <Button
+                size="sm"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start"
+                onClick={() => {
+                  console.log('Upload Resume clicked!')
+                  alert('Upload Resume modal will open here! 📤')
+                }}
+              >
+                <Folder className="h-4 w-4 mr-2" />
+                Upload Resume
+              </Button>
+            </div>
+          </div>
+          
           <SidebarGroupContent>
             {loading ? (
               <SidebarMenu>
