@@ -22,7 +22,7 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
       const timer = setTimeout(() => {
         const iframe = iframeRef.current
         if (iframe) {
-          iframe.srcDoc = htmlContent
+          iframeRef.current!.srcdoc = htmlContent 
         }
       }, 100) // Small delay to avoid too many updates
       
@@ -35,7 +35,7 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
     if (iframeRef.current) {
       setIsRefreshing(true)
       const iframe = iframeRef.current
-      iframe.srcDoc = htmlContent
+      iframeRef.current.srcdoc = htmlContent
       
       setTimeout(() => {
         setIsRefreshing(false)
@@ -120,12 +120,13 @@ export function PreviewPanel({ htmlContent, fileName }: PreviewPanelProps) {
             {htmlContent ? (
               <iframe
                 ref={iframeRef}
-                srcDoc={htmlContent}
+                srcDoc={htmlContent}           // ✅ React prop
                 className="w-full h-full min-h-[400px] border-0"
                 title="Email Preview"
                 style={{ backgroundColor: 'white' }}
                 sandbox="allow-same-origin allow-scripts"
               />
+
             ) : (
               <div className="flex items-center justify-center h-64 text-muted-foreground">
                 <div className="text-center">
