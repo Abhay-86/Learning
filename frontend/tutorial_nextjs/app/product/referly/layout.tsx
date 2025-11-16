@@ -28,12 +28,13 @@ export default function EmailServiceLayout({
     }
   }
 
-  const handleDeleteResume = (resumeId: string) => {
-    console.log('Delete resume requested for ID:', resumeId)
-    // TODO: Integrate with API
-    // For now, just dispatch an event to refresh the file list
+  const handleDeleteFile = (fileId: string, fileType: 'resume' | 'template' = 'resume') => {
+    console.log(`Delete ${fileType} requested for ID:`, fileId)
+    // Dispatch event to refresh the file list
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('resumeDeleted', { detail: { resumeId } }))
+      window.dispatchEvent(new CustomEvent('fileDeleted', { 
+        detail: { fileId, fileType } 
+      }))
     }
   }
 
@@ -53,7 +54,7 @@ export default function EmailServiceLayout({
         <EmailServiceSidebar 
           onFileSelect={handleFileSelect}
           selectedFileId={selectedFileId}
-          onDeleteResume={handleDeleteResume}
+          onDeleteResume={handleDeleteFile}
         />
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header with Sidebar Toggle and Tabs */}

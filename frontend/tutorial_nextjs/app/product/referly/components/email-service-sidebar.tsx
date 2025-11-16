@@ -33,8 +33,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getTemplatesFolderStructure, getResumesFolderStructure } from "@/services/referly/folderApi"
-import { createTemplate } from "@/services/referly/templateApi"
-import { uploadResume } from "@/services/referly/resumeApi"
+import { createTemplate, deleteTemplate } from "@/services/referly/templateApi"
+import { uploadResume, deleteResume } from "@/services/referly/resumeApi"
 import { FolderStructure, FolderItem } from "@/types/types"
 
 // Extended interface for tree rendering
@@ -45,7 +45,7 @@ interface TreeItem extends FolderItem {
 interface FileExplorerProps {
   onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
-  onDeleteResume?: (resumeId: string) => void
+  onDeleteResume?: (fileId: string, fileType?: 'resume' | 'template') => void
 }
 
 function FileIcon({ extension }: { extension?: string }) {
@@ -73,7 +73,7 @@ function FileTreeItem({
   onFileSelect: (file: FolderItem) => void
   selectedFileId?: string
   level?: number
-  onDeleteResume?: (resumeId: string) => void
+  onDeleteResume?: (fileId: string, fileType?: 'resume' | 'template') => void
 }) {
   const [isOpen, setIsOpen] = useState(true)
   
@@ -131,8 +131,8 @@ function FileTreeItem({
         <span className="text-sm">{item.display_name || item.name}</span>
       </SidebarMenuButton>
       
-      {/* Delete button for resume files only */}
-      {item.id.startsWith('RES_') && onDeleteResume && (
+      {/* Delete button for both template and resume files */}
+      {(item.id.startsWith('RES_') || item.id.startsWith('TPL_')) && onDeleteResume && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -146,15 +146,18 @@ function FileTreeItem({
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               onClick={() => {
-                const resumeId = item.id.replace('RES_', '')
-                if (confirm(`Are you sure you want to delete "${item.display_name || item.name}"?`)) {
-                  onDeleteResume(resumeId)
+                const fileId = item.id.replace('RES_', '').replace('TPL_', '')
+                const fileType = item.id.startsWith('RES_') ? 'resume' : 'template'
+                const fileName = item.display_name || item.name
+                
+                if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+                  onDeleteResume(fileId, fileType)
                 }
               }}
               className="text-red-600 focus:text-red-600 focus:bg-red-50"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete Resume
+              Delete {item.id.startsWith('RES_') ? 'Resume' : 'Template'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -185,14 +188,35 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
   const [error, setError] = useState<string | null>(null)
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
   const [isUploadingResume, setIsUploadingResume] = useState(false)
+  const [isDeletingFile, setIsDeletingFile] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  const handleDeleteResume = (resumeId: string) => {
-    console.log('Deleting resume:', resumeId)
-    if (onDeleteResume) {
-      onDeleteResume(resumeId)
+  const handleDeleteFile = async (fileId: string, fileType: 'resume' | 'template' = 'resume') => {
+    console.log(`Deleting ${fileType}:`, fileId)
+    
+    setIsDeletingFile(true)
+    try {
+      if (fileType === 'resume') {
+        await deleteResume(parseInt(fileId))
+        alert('Resume deleted successfully!')
+      } else {
+        await deleteTemplate(parseInt(fileId))
+        alert('Template deleted successfully!')
+      }
+      
+      // Refresh the folder structure to remove deleted file
+      loadFolderStructures()
+      
+      // Also call the parent handler if provided
+      if (onDeleteResume) {
+        onDeleteResume(fileId, fileType)
+      }
+    } catch (error) {
+      console.error(`Failed to delete ${fileType}:`, error)
+      alert(`Failed to delete ${fileType}. Please try again.`)
+    } finally {
+      setIsDeletingFile(false)
     }
-    alert('Resume deleted successfully!')
   }
 
   const handleCreateTemplate = async () => {
@@ -378,7 +402,7 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
                       item={item}
                       onFileSelect={onFileSelect}
                       selectedFileId={selectedFileId}
-                      onDeleteResume={handleDeleteResume}
+                      onDeleteResume={handleDeleteFile}
                     />
                   </SidebarMenuItem>
                 ))}
