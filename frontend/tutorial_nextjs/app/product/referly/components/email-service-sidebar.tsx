@@ -82,22 +82,46 @@ function FileTreeItem({
   if (item.type === 'folder') {
     return (
       <div>
-        <SidebarMenuButton
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full justify-start pl-${level * 4 + 2}`}
-        >
-          {isOpen ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-          {isOpen ? (
-            <FolderOpen className="h-4 w-4 text-blue-500" />
-          ) : (
-            <Folder className="h-4 w-4 text-blue-500" />
-          )}
-          <span>{item.name}</span>
-        </SidebarMenuButton>
+        {/* Folder Header with Action Button */}
+        <div className="flex items-center justify-between hover:bg-accent/30 rounded-md pr-1 py-1">
+          <SidebarMenuButton
+            onClick={() => setIsOpen(!isOpen)}
+            className={`flex-1 justify-start pl-${level * 4 + 2} hover:bg-transparent`}
+          >
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            {isOpen ? (
+              <FolderOpen className="h-4 w-4 text-blue-500" />
+            ) : (
+              <Folder className="h-4 w-4 text-blue-500" />
+            )}
+            <span>{item.name}</span>
+          </SidebarMenuButton>
+          
+          {/* Action buttons - Always visible in right corner */}
+          <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+            {item.id === 'templates' && (
+              <CreateTemplateModal
+                onCreate={(templateData) => {
+                  console.log('Creating template:', templateData)
+                  // TODO: Integrate with coin check and API
+                }}
+              />
+            )}
+            
+            {item.id === 'resume' && (
+              <UploadResumeModal
+                onUpload={(file) => {
+                  console.log('Uploading resume:', file.name, file.size)
+                  // TODO: Integrate with coin check and API
+                }}
+              />
+            )}
+          </div>
+        </div>
         
         {isOpen && item.children && (
           <div className="ml-4">
@@ -111,27 +135,6 @@ function FileTreeItem({
                 onDeleteResume={onDeleteResume}
               />
             ))}
-            
-            {/* Action buttons for each folder */}
-            <div className="flex gap-1 mt-2 ml-2">
-              {item.id === 'templates' && (
-                <CreateTemplateModal
-                  onCreate={(templateData) => {
-                    console.log('Creating template:', templateData)
-                    // TODO: Integrate with API
-                  }}
-                />
-              )}
-              
-              {item.id === 'resume' && (
-                <UploadResumeModal
-                  onUpload={(file) => {
-                    console.log('Uploading resume:', file.name, file.size)
-                    // TODO: Integrate with API
-                  }}
-                />
-              )}
-            </div>
           </div>
         )}
       </div>

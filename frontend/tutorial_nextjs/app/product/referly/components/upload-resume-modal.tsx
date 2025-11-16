@@ -106,11 +106,11 @@ export function UploadResumeModal({ onUpload }: UploadResumeModalProps) {
       <DialogTrigger asChild>
         <Button
           size="sm"
-          variant="ghost"
-          className="h-6 px-2 text-xs hover:bg-blue-50 hover:text-blue-600"
+          variant="outline"
+          className="h-8 w-8 p-0 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 rounded-md shadow-sm transition-all duration-200"
+          title="Upload Resume"
         >
-          <Upload className="h-3 w-3 mr-1" />
-          Upload
+          <Upload className="h-4 w-4 text-blue-600" />
         </Button>
       </DialogTrigger>
       

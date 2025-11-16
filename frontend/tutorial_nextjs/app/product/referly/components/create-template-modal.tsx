@@ -121,11 +121,11 @@ export function CreateTemplateModal({ onCreate }: CreateTemplateModalProps) {
       <DialogTrigger asChild>
         <Button
           size="sm"
-          variant="ghost"
-          className="h-6 px-2 text-xs hover:bg-green-50 hover:text-green-600"
+          variant="outline"
+          className="h-8 w-8 p-0 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700 hover:border-green-300 rounded-md shadow-sm transition-all duration-200"
+          title="Create New Template"
         >
-          <FilePlus className="h-3 w-3 mr-1" />
-          New Template
+          <FilePlus className="h-4 w-4 text-green-600" />
         </Button>
       </DialogTrigger>
       
