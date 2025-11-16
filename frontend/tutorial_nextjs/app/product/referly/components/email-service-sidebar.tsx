@@ -33,6 +33,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getTemplatesFolderStructure, getResumesFolderStructure } from "@/services/referly/folderApi"
+import { createTemplate } from "@/services/referly/templateApi"
+import { uploadResume } from "@/services/referly/resumeApi"
 import { FolderStructure, FolderItem } from "@/types/types"
 
 // Extended interface for tree rendering
@@ -181,6 +183,9 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
   const [fileSystem, setFileSystem] = useState<TreeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false)
+  const [isUploadingResume, setIsUploadingResume] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleDeleteResume = (resumeId: string) => {
     console.log('Deleting resume:', resumeId)
@@ -190,32 +195,104 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
     alert('Resume deleted successfully!')
   }
 
-  useEffect(() => {
-    const loadFolderStructures = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        // Load both templates and resumes folders
-        const [templatesData, resumesData] = await Promise.all([
-          getTemplatesFolderStructure(),
-          getResumesFolderStructure()
-        ])
-
-        const treeItems: TreeItem[] = [
-          convertToTreeItem(templatesData, 'template'),
-          convertToTreeItem(resumesData, 'resume')
-        ]
-
-        setFileSystem(treeItems)
-      } catch (err) {
-        console.error('Failed to load folder structures:', err)
-        setError('Failed to load folders. Please try again.')
-      } finally {
-        setLoading(false)
-      }
+  const handleCreateTemplate = async () => {
+    const templateName = prompt('Enter template name:')
+    if (!templateName || !templateName.trim()) {
+      return
     }
 
+    setIsCreatingTemplate(true)
+    try {
+      const newTemplate = await createTemplate({
+        name: templateName.trim(),
+        html_content: '<html><body><h1>New Template</h1><p>Start editing your template here...</p></body></html>'
+      })
+      
+      console.log('Template created:', newTemplate)
+      alert(`Template "${templateName}" created successfully! 🎉`)
+      
+      // Refresh the folder structure to show new template
+      loadFolderStructures()
+    } catch (error) {
+      console.error('Failed to create template:', error)
+      alert('Failed to create template. Please try again.')
+    } finally {
+      setIsCreatingTemplate(false)
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a PDF or DOCX file')
+      return
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('File size must be less than 10MB')
+      return
+    }
+
+    setIsUploadingResume(true)
+    try {
+      const uploadResult = await uploadResume({
+        name: file.name,
+        file: file
+      })
+      
+      console.log('Resume uploaded:', uploadResult)
+      alert(`Resume "${file.name}" uploaded successfully! 📤`)
+      
+      // Refresh the folder structure to show new resume
+      loadFolderStructures()
+    } catch (error) {
+      console.error('Failed to upload resume:', error)
+      alert('Failed to upload resume. Please try again.')
+    } finally {
+      setIsUploadingResume(false)
+      // Clear the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const loadFolderStructures = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Load both templates and resumes folders
+      const [templatesData, resumesData] = await Promise.all([
+        getTemplatesFolderStructure(),
+        getResumesFolderStructure()
+      ])
+
+      const treeItems: TreeItem[] = [
+        convertToTreeItem(templatesData, 'template'),
+        convertToTreeItem(resumesData, 'resume')
+      ]
+
+      setFileSystem(treeItems)
+    } catch (err) {
+      console.error('Failed to load folder structures:', err)
+      setError('Failed to load folders. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadFolderStructures()
   }, [])
 
@@ -233,26 +310,49 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
               <Button
                 size="sm"
                 className="w-full bg-green-600 hover:bg-green-700 text-white justify-start"
-                onClick={() => {
-                  console.log('Create Template clicked!')
-                  alert('Create Template modal will open here! 🎨')
-                }}
+                onClick={handleCreateTemplate}
+                disabled={isCreatingTemplate}
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Create New Template
+                {isCreatingTemplate ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Create New Template
+                  </>
+                )}
               </Button>
               
               <Button
                 size="sm"
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start"
-                onClick={() => {
-                  console.log('Upload Resume clicked!')
-                  alert('Upload Resume modal will open here! 📤')
-                }}
+                onClick={handleUploadClick}
+                disabled={isUploadingResume}
               >
-                <Folder className="h-4 w-4 mr-2" />
-                Upload Resume
+                {isUploadingResume ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Folder className="h-4 w-4 mr-2" />
+                    Upload Resume
+                  </>
+                )}
               </Button>
+              
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.doc"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
             </div>
           </div>
           
