@@ -192,16 +192,13 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleDeleteFile = async (fileId: string, fileType: 'resume' | 'template' = 'resume') => {
-    console.log(`Deleting ${fileType}:`, fileId)
     
     setIsDeletingFile(true)
     try {
       if (fileType === 'resume') {
         await deleteResume(parseInt(fileId))
-        alert('Resume deleted successfully!')
       } else {
         await deleteTemplate(parseInt(fileId))
-        alert('Template deleted successfully!')
       }
       
       // Refresh the folder structure to remove deleted file
@@ -213,7 +210,6 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
       }
     } catch (error) {
       console.error(`Failed to delete ${fileType}:`, error)
-      alert(`Failed to delete ${fileType}. Please try again.`)
     } finally {
       setIsDeletingFile(false)
     }
@@ -233,13 +229,11 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
       })
       
       console.log('Template created:', newTemplate)
-      alert(`Template "${templateName}" created successfully! 🎉`)
       
       // Refresh the folder structure to show new template
       loadFolderStructures()
     } catch (error) {
       console.error('Failed to create template:', error)
-      alert('Failed to create template. Please try again.')
     } finally {
       setIsCreatingTemplate(false)
     }
@@ -256,7 +250,6 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
     // Validate file type
     const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword']
     if (!allowedTypes.includes(file.type)) {
-      alert('Please select a PDF or DOCX file')
       return
     }
 
@@ -275,13 +268,13 @@ export function EmailServiceSidebar({ onFileSelect, selectedFileId, onDeleteResu
       })
       
       console.log('Resume uploaded:', uploadResult)
-      alert(`Resume "${file.name}" uploaded successfully! 📤`)
+      // alert(`Resume "${file.name}" uploaded successfully! 📤`)
       
       // Refresh the folder structure to show new resume
       loadFolderStructures()
     } catch (error) {
       console.error('Failed to upload resume:', error)
-      alert('Failed to upload resume. Please try again.')
+      // alert('Failed to upload resume. Please try again.')
     } finally {
       setIsUploadingResume(false)
       // Clear the input
