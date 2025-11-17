@@ -46,7 +46,7 @@ def create_razorpay_payment_link(amount, order_id, coins_to_credit, user):
                 'coins_to_credit': str(coins_to_credit),
                 'purpose': 'coin_purchase'
             },
-            'callback_url': f'{settings.FRONTEND_URL}/payments/success',
+            'callback_url': f'{settings.FRONTEND_URL}/payments/success?order_id={order_id}',
             'callback_method': 'get'
         }
         
