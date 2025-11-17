@@ -31,8 +31,14 @@ export interface PaymentOptions {
     qr_image_url: string | null;
     status: string | null;
     available: boolean;
+    error?: string;
   };
-  payment_link?: string;
+  payment_link: {
+    url: string | null;
+    id: string | null;
+    available: boolean;
+  };
+  razorpay_hosted_url?: string;
 }
 
 export interface CreateOrderResponse {
