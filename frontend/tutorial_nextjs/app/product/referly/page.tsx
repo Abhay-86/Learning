@@ -115,7 +115,7 @@ export default function EmailServicePage() {
             } catch (error) {
                 console.error('Failed to load file content:', error)
                 const errorContent = `<div style="text-align: center; padding: 50px; color: #ef4444; font-family: Arial, sans-serif;">
-                    <h2>❌ Error Loading File</h2>
+                    <h2>Error Loading File</h2>
                     <p>Failed to load content for ${file.name}</p>
                     <p>Please try again or contact support.</p>
                 </div>`

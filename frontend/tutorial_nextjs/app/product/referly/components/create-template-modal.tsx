@@ -98,7 +98,7 @@ export function CreateTemplateModal({ onCreate }: CreateTemplateModalProps) {
       // Reset and close
       setFormData({ name: '', description: '', template_type: '' })
       setIsOpen(false)
-      alert('Template created successfully!')
+      // alert('Template created successfully!')
     } catch (error) {
       alert('Failed to create template. Please try again.')
     } finally {
