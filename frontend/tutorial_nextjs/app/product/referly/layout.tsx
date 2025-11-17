@@ -45,6 +45,7 @@ export default function EmailServiceLayout({
     if (pathname === '/product/referly') return 'home'
     if (pathname === '/product/referly/email_dashboard') return 'dashboard'
     if (pathname === '/product/referly/send_email') return 'send-email'
+    if (pathname === '/product/referly/emails') return 'emails'
     return 'home' // default
   }
   
