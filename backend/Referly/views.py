@@ -2,17 +2,22 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
+from django.db.models import Q, Count
 import base64
 
 from features.permission import ReferlyPermission
-from .models import Template, Resume, UserQuota
+from .models import Template, Resume, UserQuota, Company, HRContact
 from .serializers import (
     TemplateSerializer, TemplateCreateSerializer, TemplateUpdateSerializer,
     ResumeSerializer, ResumeUploadSerializer, UserQuotaSerializer,
-    FolderStructureSerializer, ResumePreviewSerializer
+    FolderStructureSerializer, ResumePreviewSerializer,
+    CompanySerializer, CompanyCreateSerializer, CompanyUpdateSerializer,
+    HRContactSerializer, HRContactCreateSerializer, HRContactUpdateSerializer,
+    HRContactListSerializer, BulkUploadResponseSerializer,
+    CompanyStatsSerializer, HRContactStatsSerializer
 )
 from .utils import FolderStructureManager
 
@@ -296,4 +301,382 @@ class UserQuotaView(APIView):
     def get(self, request):
         quota, _ = UserQuota.objects.get_or_create(user=request.user)
         serializer = UserQuotaSerializer(quota)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# ==================== COMPANY MANAGEMENT VIEWS ====================
+
+class CompanyListView(APIView):
+    """List all companies with pagination and search"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='search', type=str, description='Search in company name or domain'),
+            OpenApiParameter(name='industry', type=str, description='Filter by industry'),
+            OpenApiParameter(name='location', type=str, description='Filter by location'),
+            OpenApiParameter(name='company_size', type=str, description='Filter by company size'),
+        ],
+        responses={200: CompanySerializer(many=True)}
+    )
+    def get(self, request):
+        companies = Company.objects.filter(is_active=True)
+        
+        # Search functionality
+        search = request.query_params.get('search', None)
+        if search:
+            companies = companies.filter(
+                Q(name__icontains=search) | 
+                Q(domain__icontains=search) |
+                Q(company_id__icontains=search)
+            )
+        
+        # Filter by industry
+        industry = request.query_params.get('industry', None)
+        if industry:
+            companies = companies.filter(industry__icontains=industry)
+        
+        # Filter by location
+        location = request.query_params.get('location', None)
+        if location:
+            companies = companies.filter(location__icontains=location)
+        
+        # Filter by company size
+        company_size = request.query_params.get('company_size', None)
+        if company_size:
+            companies = companies.filter(company_size__icontains=company_size)
+        
+        serializer = CompanySerializer(companies, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CompanyCreateView(APIView):
+    """Create a new company"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(request=CompanyCreateSerializer, responses={201: CompanySerializer})
+    def post(self, request):
+        serializer = CompanyCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            company = serializer.save()
+            response_serializer = CompanySerializer(company)
+            return Response(
+                {"message": "Company created successfully!", "data": response_serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CompanyDetailView(APIView):
+    """Get, update, or delete a specific company"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    def get_object(self, company_id):
+        return get_object_or_404(Company, company_id=company_id, is_active=True)
+    
+    @extend_schema(responses={200: CompanySerializer})
+    def get(self, request, company_id):
+        company = self.get_object(company_id)
+        serializer = CompanySerializer(company)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @extend_schema(request=CompanyUpdateSerializer, responses={200: CompanySerializer})
+    def put(self, request, company_id):
+        company = self.get_object(company_id)
+        serializer = CompanyUpdateSerializer(company, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response_serializer = CompanySerializer(company)
+            return Response(
+                {"message": "Company updated successfully!", "data": response_serializer.data},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @extend_schema(responses={204: None})
+    def delete(self, request, company_id):
+        company = self.get_object(company_id)
+        company.is_active = False  # Soft delete
+        company.save()
+        return Response(
+            {"message": "Company deleted successfully!"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class CompanySearchView(APIView):
+    """Advanced company search with multiple filters"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='query', type=str, description='General search query'),
+            OpenApiParameter(name='industry', type=str, description='Filter by industry'),
+            OpenApiParameter(name='location', type=str, description='Filter by location'),
+            OpenApiParameter(name='min_employees', type=int, description='Minimum employee count'),
+            OpenApiParameter(name='has_linkedin', type=bool, description='Has LinkedIn profile'),
+        ],
+        responses={200: CompanySerializer(many=True)}
+    )
+    def get(self, request):
+        companies = Company.objects.filter(is_active=True)
+        
+        query = request.query_params.get('query', None)
+        if query:
+            companies = companies.filter(
+                Q(name__icontains=query) |
+                Q(domain__icontains=query) |
+                Q(industry__icontains=query) |
+                Q(location__icontains=query)
+            )
+        
+        industry = request.query_params.get('industry', None)
+        if industry:
+            companies = companies.filter(industry__iexact=industry)
+        
+        location = request.query_params.get('location', None)
+        if location:
+            companies = companies.filter(location__icontains=location)
+        
+        has_linkedin = request.query_params.get('has_linkedin', None)
+        if has_linkedin is not None:
+            if has_linkedin.lower() == 'true':
+                companies = companies.exclude(linkedin_url='')
+            else:
+                companies = companies.filter(linkedin_url='')
+        
+        serializer = CompanySerializer(companies, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# ==================== HR CONTACT MANAGEMENT VIEWS ====================
+
+class HRContactListView(APIView):
+    """List all HR contacts with pagination and search"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='search', type=str, description='Search in HR name or email'),
+            OpenApiParameter(name='company_id', type=str, description='Filter by company ID'),
+            OpenApiParameter(name='verified_only', type=bool, description='Show only verified contacts'),
+        ],
+        responses={200: HRContactListSerializer(many=True)}
+    )
+    def get(self, request):
+        hr_contacts = HRContact.objects.filter(is_active=True).select_related('company')
+        
+        # Search functionality
+        search = request.query_params.get('search', None)
+        if search:
+            hr_contacts = hr_contacts.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(company__name__icontains=search)
+            )
+        
+        # Filter by company
+        company_id = request.query_params.get('company_id', None)
+        if company_id:
+            hr_contacts = hr_contacts.filter(company__company_id=company_id)
+        
+        # Filter verified contacts only
+        verified_only = request.query_params.get('verified_only', None)
+        if verified_only and verified_only.lower() == 'true':
+            hr_contacts = hr_contacts.filter(email_verified=True)
+        
+        serializer = HRContactListSerializer(hr_contacts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class HRContactCreateView(APIView):
+    """Create a new HR contact"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(request=HRContactCreateSerializer, responses={201: HRContactSerializer})
+    def post(self, request):
+        serializer = HRContactCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            hr_contact = serializer.save()
+            response_serializer = HRContactSerializer(hr_contact)
+            return Response(
+                {"message": "HR contact created successfully!", "data": response_serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class HRContactDetailView(APIView):
+    """Get, update, or delete a specific HR contact"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    def get_object(self, hr_id):
+        return get_object_or_404(HRContact, id=hr_id, is_active=True)
+    
+    @extend_schema(responses={200: HRContactSerializer})
+    def get(self, request, hr_id):
+        hr_contact = self.get_object(hr_id)
+        serializer = HRContactSerializer(hr_contact)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @extend_schema(request=HRContactUpdateSerializer, responses={200: HRContactSerializer})
+    def put(self, request, hr_id):
+        hr_contact = self.get_object(hr_id)
+        serializer = HRContactUpdateSerializer(hr_contact, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response_serializer = HRContactSerializer(hr_contact)
+            return Response(
+                {"message": "HR contact updated successfully!", "data": response_serializer.data},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @extend_schema(responses={204: None})
+    def delete(self, request, hr_id):
+        hr_contact = self.get_object(hr_id)
+        hr_contact.is_active = False  # Soft delete
+        hr_contact.save()
+        return Response(
+            {"message": "HR contact deleted successfully!"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class HRContactSearchView(APIView):
+    """Advanced HR contact search"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='query', type=str, description='General search query'),
+            OpenApiParameter(name='company_name', type=str, description='Filter by company name'),
+            OpenApiParameter(name='industry', type=str, description='Filter by company industry'),
+            OpenApiParameter(name='location', type=str, description='Filter by company location'),
+            OpenApiParameter(name='verified_email', type=bool, description='Has verified email'),
+            OpenApiParameter(name='verified_linkedin', type=bool, description='Has verified LinkedIn'),
+        ],
+        responses={200: HRContactListSerializer(many=True)}
+    )
+    def get(self, request):
+        hr_contacts = HRContact.objects.filter(is_active=True).select_related('company')
+        
+        query = request.query_params.get('query', None)
+        if query:
+            hr_contacts = hr_contacts.filter(
+                Q(first_name__icontains=query) |
+                Q(last_name__icontains=query) |
+                Q(email__icontains=query) |
+                Q(company__name__icontains=query)
+            )
+        
+        company_name = request.query_params.get('company_name', None)
+        if company_name:
+            hr_contacts = hr_contacts.filter(company__name__icontains=company_name)
+        
+        industry = request.query_params.get('industry', None)
+        if industry:
+            hr_contacts = hr_contacts.filter(company__industry__icontains=industry)
+        
+        location = request.query_params.get('location', None)
+        if location:
+            hr_contacts = hr_contacts.filter(company__location__icontains=location)
+        
+        verified_email = request.query_params.get('verified_email', None)
+        if verified_email is not None:
+            hr_contacts = hr_contacts.filter(email_verified=verified_email.lower() == 'true')
+        
+        verified_linkedin = request.query_params.get('verified_linkedin', None)
+        if verified_linkedin is not None:
+            hr_contacts = hr_contacts.filter(linkedin_verified=verified_linkedin.lower() == 'true')
+        
+        serializer = HRContactListSerializer(hr_contacts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class HRContactByCompanyView(APIView):
+    """Get all HR contacts for a specific company"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(responses={200: HRContactListSerializer(many=True)})
+    def get(self, request, company_id):
+        company = get_object_or_404(Company, company_id=company_id, is_active=True)
+        hr_contacts = HRContact.objects.filter(company=company, is_active=True)
+        serializer = HRContactListSerializer(hr_contacts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# ==================== VERIFICATION VIEWS ====================
+
+class VerifyHREmailView(APIView):
+    """Mark HR contact email as verified"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(responses={200: HRContactSerializer})
+    def post(self, request, hr_id):
+        hr_contact = get_object_or_404(HRContact, id=hr_id, is_active=True)
+        hr_contact.email_verified = True
+        hr_contact.save()
+        serializer = HRContactSerializer(hr_contact)
+        return Response(
+            {"message": "Email verified successfully!", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
+class VerifyHRLinkedInView(APIView):
+    """Mark HR contact LinkedIn as verified"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(responses={200: HRContactSerializer})
+    def post(self, request, hr_id):
+        hr_contact = get_object_or_404(HRContact, id=hr_id, is_active=True)
+        hr_contact.linkedin_verified = True
+        hr_contact.save()
+        serializer = HRContactSerializer(hr_contact)
+        return Response(
+            {"message": "LinkedIn verified successfully!", "data": serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
+# ==================== STATISTICS VIEWS ====================
+
+class CompanyStatsView(APIView):
+    """Get company statistics"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(responses={200: CompanyStatsSerializer})
+    def get(self, request):
+        companies = Company.objects.filter(is_active=True)
+        
+        stats = {
+            'total_companies': companies.count(),
+            'active_companies': companies.filter(is_active=True).count(),
+            'companies_by_industry': dict(companies.values('industry').annotate(count=Count('industry')).values_list('industry', 'count')),
+            'companies_by_size': dict(companies.values('company_size').annotate(count=Count('company_size')).values_list('company_size', 'count')),
+        }
+        
+        serializer = CompanyStatsSerializer(stats)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class HRContactStatsView(APIView):
+    """Get HR contact statistics"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(responses={200: HRContactStatsSerializer})
+    def get(self, request):
+        hr_contacts = HRContact.objects.filter(is_active=True)
+        
+        stats = {
+            'total_hr_contacts': hr_contacts.count(),
+            'active_hr_contacts': hr_contacts.filter(is_active=True).count(),
+            'verified_emails': hr_contacts.filter(email_verified=True).count(),
+            'verified_linkedin': hr_contacts.filter(linkedin_verified=True).count(),
+            'contacts_by_company': dict(hr_contacts.values('company__name').annotate(count=Count('company')).values_list('company__name', 'count')),
+        }
+        
+        serializer = HRContactStatsSerializer(stats)
         return Response(serializer.data, status=status.HTTP_200_OK)
