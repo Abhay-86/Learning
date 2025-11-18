@@ -97,3 +97,70 @@ class UserQuota(models.Model):
     
     def __str__(self):
         return f"Quota for {self.user.username}: Templates({self.current_templates}/{self.max_templates}), Resumes({self.current_resumes}/{self.max_resumes})"
+
+
+class Company(models.Model):
+    """Company model for storing company information"""
+    # Your custom company ID (unique)
+    company_id = models.CharField(max_length=50, unique=True)  # Your custom ID like "COMP001", "COMP002"
+    
+    # LinkedIn info (optional)
+    linkedin_company_id = models.CharField(max_length=100, blank=True)  # Not unique, just reference
+    
+    # Basic company info
+    name = models.CharField(max_length=255)
+    domain = models.URLField()  # company website domain
+    linkedin_url = models.URLField(blank=True)
+    
+    # Additional company details
+    industry = models.CharField(max_length=100, blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    employee_count_range = models.CharField(max_length=50, blank=True)
+    company_size = models.CharField(max_length=20, blank=True)
+    
+    # Status fields
+    is_active = models.BooleanField(default=True)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'referly_company'
+        ordering = ['company_id']
+    
+    def __str__(self):
+        return f"{self.company_id}: {self.name}"
+
+
+class HRContact(models.Model):
+    """HR Contact model for storing HR contact information"""
+    # Link to company
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='hr_contacts')
+    
+    # Basic HR Contact Info
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)  # Unique emails globally
+    phone = models.CharField(max_length=20, blank=True)
+    linkedin_url = models.URLField(blank=True)
+    
+    # Verification & Status
+    email_verified = models.BooleanField(default=False)
+    linkedin_verified = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'referly_hrcontact'
+        ordering = ['company__company_id', 'first_name', 'last_name']
+    
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.company.name}"
+    
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Template, Resume, UserQuota
+from .models import Template, Resume, UserQuota, Company, HRContact
 from django.contrib.auth.models import User
 import base64
 
@@ -141,3 +141,135 @@ class ResumePreviewSerializer(serializers.ModelSerializer):
         elif obj.file_extension == 'docx':
             return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         return 'application/octet-stream'
+
+
+# Company Serializers
+class CompanySerializer(serializers.ModelSerializer):
+    """Serializer for Company model"""
+    hr_contacts_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Company
+        fields = ['id', 'company_id', 'name', 'domain', 'linkedin_url', 'linkedin_company_id',
+                 'industry', 'location', 'employee_count_range', 'company_size', 
+                 'hr_contacts_count', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'hr_contacts_count']
+    
+    def get_hr_contacts_count(self, obj):
+        return obj.hr_contacts.filter(is_active=True).count()
+
+
+class CompanyCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating companies"""
+    class Meta:
+        model = Company
+        fields = ['company_id', 'name', 'domain', 'linkedin_url', 'linkedin_company_id',
+                 'industry', 'location', 'employee_count_range', 'company_size']
+    
+    def validate_company_id(self, value):
+        if Company.objects.filter(company_id=value).exists():
+            raise serializers.ValidationError("Company with this ID already exists.")
+        return value
+
+
+class CompanyUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating companies"""
+    class Meta:
+        model = Company
+        fields = ['name', 'domain', 'linkedin_url', 'linkedin_company_id',
+                 'industry', 'location', 'employee_count_range', 'company_size', 'is_active']
+
+
+# HR Contact Serializers
+class HRContactSerializer(serializers.ModelSerializer):
+    """Serializer for HR Contact model"""
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    company_id = serializers.CharField(source='company.company_id', read_only=True)
+    full_name = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = HRContact
+        fields = ['id', 'company', 'company_id', 'company_name', 'first_name', 'last_name', 'full_name',
+                 'email', 'phone', 'linkedin_url', 'email_verified', 'linkedin_verified',
+                 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'full_name', 'company_name', 'company_id']
+
+
+class HRContactCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating HR contacts"""
+    company_id = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = HRContact
+        fields = ['company_id', 'first_name', 'last_name', 'email', 'phone', 'linkedin_url']
+    
+    def validate_company_id(self, value):
+        try:
+            company = Company.objects.get(company_id=value, is_active=True)
+            return company
+        except Company.DoesNotExist:
+            raise serializers.ValidationError("Company with this ID does not exist.")
+    
+    def validate_email(self, value):
+        if HRContact.objects.filter(email=value, is_active=True).exists():
+            raise serializers.ValidationError("HR contact with this email already exists.")
+        return value
+    
+    def create(self, validated_data):
+        company = validated_data.pop('company_id')
+        validated_data['company'] = company
+        return super().create(validated_data)
+
+
+class HRContactUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating HR contacts"""
+    class Meta:
+        model = HRContact
+        fields = ['first_name', 'last_name', 'email', 'phone', 'linkedin_url', 
+                 'email_verified', 'linkedin_verified', 'is_active']
+    
+    def validate_email(self, value):
+        # Check if email exists for other HR contacts
+        if self.instance:
+            existing = HRContact.objects.filter(email=value, is_active=True).exclude(id=self.instance.id)
+            if existing.exists():
+                raise serializers.ValidationError("HR contact with this email already exists.")
+        return value
+
+
+class HRContactListSerializer(serializers.ModelSerializer):
+    """Simplified serializer for HR contact lists"""
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    company_id = serializers.CharField(source='company.company_id', read_only=True)
+    full_name = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = HRContact
+        fields = ['id', 'company_id', 'company_name', 'full_name', 'email', 'phone', 
+                 'email_verified', 'linkedin_verified', 'created_at']
+
+
+# Bulk Upload Serializers
+class BulkUploadResponseSerializer(serializers.Serializer):
+    """Serializer for bulk upload response"""
+    success_count = serializers.IntegerField()
+    error_count = serializers.IntegerField()
+    errors = serializers.ListField(child=serializers.CharField(), required=False)
+    warnings = serializers.ListField(child=serializers.CharField(), required=False)
+
+
+class CompanyStatsSerializer(serializers.Serializer):
+    """Serializer for company statistics"""
+    total_companies = serializers.IntegerField()
+    active_companies = serializers.IntegerField()
+    companies_by_industry = serializers.DictField()
+    companies_by_size = serializers.DictField()
+
+
+class HRContactStatsSerializer(serializers.Serializer):
+    """Serializer for HR contact statistics"""
+    total_hr_contacts = serializers.IntegerField()
+    active_hr_contacts = serializers.IntegerField()
+    verified_emails = serializers.IntegerField()
+    verified_linkedin = serializers.IntegerField()
+    contacts_by_company = serializers.DictField()
