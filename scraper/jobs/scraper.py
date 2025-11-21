@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
-developer_jobs = [
+job_keywords = [
     "software developer",
     "web developer",
     "python developer",
