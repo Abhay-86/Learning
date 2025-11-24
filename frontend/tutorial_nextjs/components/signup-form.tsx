@@ -18,9 +18,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { registerUser, sendOTP } from "@/services/auth/authApi";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
-  
+
   const router = useRouter();
   const [formData, setFormData] = useState({
     first_name: "",
@@ -33,6 +34,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -47,11 +50,11 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       // Step 1: Register the user
       await registerUser(formData);
       setMessage("🎉 Account created successfully! Sending verification email...");
-      
+
       // Step 2: Automatically send OTP to the registered email
       await sendOTP({ email: formData.email });
       setMessage("📧 Verification code sent! Redirecting to verification page...");
-      
+
       // Step 3: Clear form data
       const userEmail = formData.email;
       setFormData({
@@ -62,11 +65,11 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         password: "",
         confirm_password: "",
       });
-      
+
       // Step 4: Redirect to verification page with email pre-filled
       setTimeout(() => {
         router.push(`/auth/verify-email?email=${encodeURIComponent(userEmail)}`);
-      }, 1500);
+      }, 150);
     } catch (err: any) {
       console.error(err);
       // Check if registration succeeded but OTP sending failed
@@ -145,25 +148,45 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             </Field>
             <Field>
               <FieldLabel htmlFor="password">Password</FieldLabel>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </Field>
             <Field>
               <FieldLabel htmlFor="confirm_password">
                 Confirm Password
               </FieldLabel>
-              <Input
-                id="confirm_password"
-                type="password"
-                value={formData.confirm_password}
-                onChange={handleChange}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="confirm_password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirm_password}
+                  onChange={handleChange}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </Field>
 
             <Field>
@@ -180,13 +203,12 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
           </FieldGroup>
 
           {message && (
-            <div className={`text-center mt-4 text-sm ${
-              message.includes('🎉') || message.includes('📧') 
-                ? 'text-green-600' 
-                : message.includes('⚠️') 
-                ? 'text-yellow-600' 
-                : 'text-red-600'
-            }`}>
+            <div className={`text-center mt-4 text-sm ${message.includes('🎉') || message.includes('📧')
+                ? 'text-green-600'
+                : message.includes('⚠️')
+                  ? 'text-yellow-600'
+                  : 'text-red-600'
+              }`}>
               {message}
             </div>
           )}
