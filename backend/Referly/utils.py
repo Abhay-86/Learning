@@ -91,3 +91,105 @@ class FolderStructureManager:
                 "remaining": quota.max_resumes - quota.current_resumes
             }
         }
+
+
+class ExcelDataNormalizer:
+    """Utility class for normalizing Excel data for bulk uploads"""
+    
+    @staticmethod
+    def normalize_column_names(df):
+        """
+        Normalize DataFrame column names to standard format.
+        Can be updated over time as column naming conventions change.
+        """
+        # Convert to lowercase and replace spaces/special chars with underscores
+        df.columns = df.columns.str.lower().str.strip()
+        df.columns = df.columns.str.replace(r'[^\w\s]', '', regex=True)  # Remove special chars
+        df.columns = df.columns.str.replace(r'\s+', '_', regex=True)     # Replace spaces with underscore
+        
+        # Map common variations to standard column names
+        column_mapping = {
+            # Company fields
+            'company': 'company_name',
+            'companyname': 'company_name',
+            'company_id': 'company_id',
+            'companyid': 'company_id',
+            'website': 'domain',
+            'company_website': 'domain',
+            'linkedin': 'linkedin_url',
+            'linkedin_profile': 'linkedin_url',
+            'company_linkedin': 'linkedin_url',
+            'size': 'company_size',
+            'employees': 'employee_count_range',
+            'employee_count': 'employee_count_range',
+            
+            # HR Contact fields
+            'first': 'first_name',
+            'firstname': 'first_name',
+            'last': 'last_name',
+            'lastname': 'last_name',
+            'email_address': 'email',
+            'mail': 'email',
+            'phone_number': 'phone',
+            'mobile': 'phone',
+            'linkedin_profile': 'linkedin_url',
+            'linkedin': 'linkedin_url',
+        }
+        
+        df.rename(columns=column_mapping, inplace=True)
+        return df
+    
+    @staticmethod
+    def clean_company_data(row):
+        """Clean and normalize a single company data row"""
+        cleaned = {}
+        
+        # Required fields
+        cleaned['name'] = str(row.get('company_name', '')).strip() if row.get('company_name') else ''
+        cleaned['domain'] = str(row.get('domain', '')).strip() if row.get('domain') else ''
+        
+        # Optional fields
+        cleaned['industry'] = str(row.get('industry', '')).strip() if row.get('industry') else ''
+        cleaned['location'] = str(row.get('location', '')).strip() if row.get('location') else ''
+        cleaned['employee_count_range'] = str(row.get('employee_count_range', '')).strip() if row.get('employee_count_range') else ''
+        cleaned['company_size'] = str(row.get('company_size', '')).strip() if row.get('company_size') else ''
+        cleaned['linkedin_url'] = str(row.get('linkedin_url', '')).strip() if row.get('linkedin_url') else ''
+        cleaned['linkedin_company_id'] = str(row.get('linkedin_company_id', '')).strip() if row.get('linkedin_company_id') else ''
+        
+        return cleaned
+    
+    @staticmethod
+    def clean_hr_contact_data(row):
+        """Clean and normalize a single HR contact data row"""
+        cleaned = {}
+        
+        # Required fields
+        cleaned['first_name'] = str(row.get('first_name', '')).strip() if row.get('first_name') else ''
+        cleaned['last_name'] = str(row.get('last_name', '')).strip() if row.get('last_name') else ''
+        cleaned['email'] = str(row.get('email', '')).strip().lower() if row.get('email') else ''
+        
+        # Company reference (required)
+        cleaned['company_name'] = str(row.get('company_name', '')).strip() if row.get('company_name') else ''
+        cleaned['company_id'] = str(row.get('company_id', '')).strip() if row.get('company_id') else ''
+        
+        # Optional fields
+        cleaned['phone'] = str(row.get('phone', '')).strip() if row.get('phone') else ''
+        cleaned['linkedin_url'] = str(row.get('linkedin_url', '')).strip() if row.get('linkedin_url') else ''
+        
+        return cleaned
+    
+    @staticmethod
+    def validate_email(email):
+        """Basic email validation"""
+        import re
+        if not email:
+            return False
+        pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        return re.match(pattern, email) is not None
+    
+    @staticmethod
+    def validate_url(url):
+        """Basic URL validation"""
+        if not url:
+            return True  # Empty URLs are ok (optional field)
+        return url.startswith('http://') or url.startswith('https://')

@@ -76,7 +76,7 @@ export function UploadResumeModal({ onUpload }: UploadResumeModalProps) {
     setUploading(true)
     try {
       // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
       if (onUpload) {
         onUpload(selectedFile)

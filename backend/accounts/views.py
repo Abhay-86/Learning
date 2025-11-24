@@ -7,6 +7,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from django.core.mail import send_mail
+from .google_auth import get_user_info_from_google
+from rest_framework.exceptions import AuthenticationFailed
 
 from .serializers import (
     RegisterSerializer, 
@@ -14,6 +16,7 @@ from .serializers import (
     LoginSerializer,
     SendOTPSerializer,
     VerifyOTPSerializer,
+    GoogleLoginSerializer,
 )
 from .models import CustomUser
 from django.contrib.auth.models import User
@@ -96,6 +99,106 @@ class LoginView(APIView):
             return response
         
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GoogleLoginView(APIView):
+    """Google OAuth login endpoint"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+    @extend_schema(request=GoogleLoginSerializer, responses={200: UserSerializer})
+    def post(self, request):
+        
+        serializer = GoogleLoginSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            token = serializer.validated_data['token']
+            
+            try:
+                # Verify token and get user info from Google
+                google_user_info = get_user_info_from_google(token)
+                
+                email = google_user_info['email']
+                first_name = google_user_info['first_name']
+                last_name = google_user_info['last_name']
+                
+                # Check if user exists
+                try:
+                    user = User.objects.get(email=email)
+                except User.DoesNotExist:
+                    # Create new user
+                    with transaction.atomic():
+                        # Generate username from email
+                        username = email.split('@')[0]
+                        # Make unique if username already exists
+                        base_username = username
+                        counter = 1
+                        while User.objects.filter(username=username).exists():
+                            username = f"{base_username}{counter}"
+                            counter += 1
+                        
+                        user = User.objects.create_user(
+                            username=username,
+                            email=email,
+                            first_name=first_name,
+                            last_name=last_name,
+                            is_active=True
+                        )
+                        # Set unusable password for Google OAuth users
+                        user.set_unusable_password()
+                        user.save()
+                        
+                        # Create CustomUser profile
+                        CustomUser.objects.create(
+                            user=user,
+                            is_verified=True,  # Google already verified the email
+                            role='USER'
+                        )
+                
+                # Generate JWT tokens
+                refresh = RefreshToken.for_user(user)
+                access_token = str(refresh.access_token)
+                refresh_token = str(refresh)
+                
+                response = Response({
+                    "message": "Login successful.",
+                    "user": UserSerializer(user).data,
+                    "access": access_token,
+                    "refresh": refresh_token
+                }, status=status.HTTP_200_OK)
+                
+                # Set HttpOnly cookies
+                response.set_cookie(
+                    key='access',
+                    value=access_token,
+                    httponly=True,
+                    secure=True,
+                    samesite='None',
+                    max_age=60 * 60  # 1 hour
+                )
+                response.set_cookie(
+                    key='refresh',
+                    value=refresh_token,
+                    httponly=True,
+                    secure=True,
+                    samesite='None',
+                    max_age=24 * 60 * 60  # 1 day
+                )
+                
+                return response
+                
+            except AuthenticationFailed as e:
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            except Exception as e:
+                return Response(
+                    {"error": f"Authentication failed: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProfileView(APIView):

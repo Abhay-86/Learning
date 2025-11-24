@@ -228,3 +228,7 @@ RAZORPAY_WEBHOOK_SECRET = config("RAZORPAY_WEBHOOK_SECRET", default="")
 
 # Frontend URL for payment callbacks
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")

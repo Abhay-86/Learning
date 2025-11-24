@@ -182,3 +182,14 @@ class VerifyOTPSerializer(serializers.Serializer):
         custom_user.save()
 
         return {"message": "Email verified successfully!"}
+
+
+class GoogleLoginSerializer(serializers.Serializer):
+    """Serializer for Google OAuth login"""
+    token = serializers.CharField(required=True, write_only=True)
+    
+    def validate_token(self, value):
+        """Validate that token is provided"""
+        if not value:
+            raise serializers.ValidationError("Google token is required")
+        return value

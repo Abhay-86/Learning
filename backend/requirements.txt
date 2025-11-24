@@ -16,3 +16,7 @@ qrcode[pil]==8.0
 djangorestframework-simplejwt
 gspread
 django
+google-auth==2.27.0
+google-auth-oauthlib==1.2.0
+pandas==2.1.4
+openpyxl==3.1.2

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Coins, CreditCard, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { Loader2, Coins, CreditCard, CheckCircle, AlertCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import axiosInstance from "@/utils/axiosInstance";
 
 declare global {
@@ -34,7 +34,7 @@ interface OrderResponse {
 export default function PaymentPage() {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   // State
   const [amount, setAmount] = useState<number>(100);
   const [loading, setLoading] = useState(false);
@@ -103,7 +103,7 @@ export default function PaymentPage() {
     try {
       // Create order
       const response = await axiosInstance.post<OrderResponse>('/payments/create-order/', { amount });
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to create order');
       }
@@ -126,18 +126,18 @@ export default function PaymentPage() {
               razorpay_order_id: razorpayResponse.razorpay_order_id,
               razorpay_signature: razorpayResponse.razorpay_signature,
             });
-            
+
             if (verifyResponse.data.success) {
               setSuccess(`Payment successful! ${order.coins_to_credit} coins added to your wallet.`);
               setShowDashboardOption(true);
-              
+
               // Refresh wallet
               const walletResponse = await getUserWallet();
               setWallet(walletResponse.wallet);
             } else {
               setError('Payment verification failed. Please contact support.');
             }
-            
+
           } catch (err: any) {
             setError('Payment verification failed. Please contact support.');
             console.error('Verification error:', err);
@@ -156,7 +156,7 @@ export default function PaymentPage() {
           color: '#3399cc'
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             setLoading(false);
           }
         }
@@ -190,7 +190,17 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto space-y-6">
-        
+
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/dashboard')}
+          className="mb-2"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
+        </Button>
+
         {/* Header */}
         <Card>
           <CardHeader className="text-center">
@@ -205,7 +215,7 @@ export default function PaymentPage() {
         </Card>
 
         <div className="grid md:grid-cols-2 gap-6">
-          
+
           {/* Wallet Stats */}
           <Card>
             <CardHeader>
@@ -221,7 +231,7 @@ export default function PaymentPage() {
                   {wallet?.coin_balance || 0} coins
                 </span>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Earned</span>
@@ -244,7 +254,7 @@ export default function PaymentPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              
+
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -314,7 +324,7 @@ export default function PaymentPage() {
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={handlePayment}
                 disabled={loading || !razorpayLoaded || amount < 10}
                 className="w-full h-12 text-lg"

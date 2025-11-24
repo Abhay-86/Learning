@@ -39,3 +39,8 @@ export async function getDashboardData(): Promise<any> {
     return response.data.dashboard;
 }
 
+export async function googleLogin(credential: string): Promise<User> {
+    const response = await axiosInstance.post("accounts/google-login/", { token: credential });
+    return response.data.user; // Extract the user object from the Google login response
+}
+

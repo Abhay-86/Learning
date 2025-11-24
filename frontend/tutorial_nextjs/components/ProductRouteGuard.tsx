@@ -17,12 +17,12 @@ interface ProductRouteGuardProps {
   fallbackComponent?: React.ReactNode;
 }
 
-export function ProductRouteGuard({ 
-  children, 
-  requiredFeature, 
+export function ProductRouteGuard({
+  children,
+  requiredFeature,
   productName,
   redirectOnNoAccess = false,
-  fallbackComponent 
+  fallbackComponent
 }: ProductRouteGuardProps) {
   const { features, loading, user, getFeatureExpiryInfo } = useAuth();
   const router = useRouter();
@@ -40,7 +40,7 @@ export function ProductRouteGuard({
 
     // Check feature access
     const hasAccess = featureUtils.hasFeatureAccess(features, requiredFeature);
-    
+
     if (!hasAccess && redirectOnNoAccess) {
       // Redirect to payments with feature context
       router.push(`/payments?feature=${requiredFeature}&product=${encodeURIComponent(displayName)}`);
@@ -116,7 +116,7 @@ export function ProductRouteGuard({
   //               )}
   //             </CardDescription>
   //           </CardHeader>
-            
+
   //           <CardContent className="text-center space-y-6">
   //             {/* Expiry info */}
   //             {expiryInfo.hasFeature && expiryInfo.isExpired && (
@@ -175,7 +175,7 @@ function getFeatureBenefits(featureCode: string): string[] {
   const benefits: Record<string, string[]> = {
     'crm': [
       'Manage unlimited customers and contacts',
-      'Track deals and sales pipeline', 
+      'Track deals and sales pipeline',
       'Activity logging and follow-ups',
       'Sales reports and analytics'
     ],
@@ -193,7 +193,7 @@ function getFeatureBenefits(featureCode: string): string[] {
     ],
     'time_travel': [
       'Access historical data snapshots',
-      'Time-based analytics and insights', 
+      'Time-based analytics and insights',
       'Data recovery and restoration',
       'Temporal workflow management'
     ],

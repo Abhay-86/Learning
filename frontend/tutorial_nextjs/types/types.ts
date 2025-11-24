@@ -26,6 +26,7 @@ export interface AuthContextType {
   features: UserFeature[];             // ✅ Correct type: UserFeature[]
   loading: boolean;
   loginUser: (loginPayload: LoginPayload) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   logoutUser: () => void;
   hasRole: (role: UserRole | UserRole[]) => boolean;
   isAdmin: () => boolean;
