@@ -19,12 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
-  const { loginUser } = useAuth();
+  const { loginUser, loginWithGoogle } = useAuth();
   const router = useRouter();
 
-  const [email, setEmail] = useState("");     
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,13 +36,37 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
     setLoading(true);
 
     try {
-      await loginUser({ email, password }); 
+      await loginUser({ email, password });
       router.push("/dashboard");
     } catch (err: any) {
       setError("Invalid email or password");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError("No credential received from Google");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await loginWithGoogle(credentialResponse.credential);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError("Google login failed. Please try again.");
+      console.error("Google login error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google login failed. Please try again.");
   };
 
   return (
@@ -95,9 +120,19 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                 <Button type="submit" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
                 </Button>
-                <Button variant="outline" type="button">
-                  Login with Google
-                </Button>
+
+                <div className="flex items-center justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    useOneTap
+                    theme="outline"
+                    size="large"
+                    text="signin_with"
+                    shape="rectangular"
+                  />
+                </div>
+
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
                   <a href="/auth/signup" className="underline">

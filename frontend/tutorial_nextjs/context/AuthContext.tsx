@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { login, userProfile, refreshToken, logout } from "@/services/auth/authApi";
+import { login, userProfile, refreshToken, logout, googleLogin } from "@/services/auth/authApi";
 import { getUserFeatures } from "@/services/features/featureApi";
 import { User, AuthContextType, LoginPayload, UserRole, UserFeature } from "@/types/types";
 import { roleUtils } from "@/lib/roleUtils";
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [features, setFeatures] = useState<UserFeature[]>([]);
   // const [featuresLoading, setFeaturesLoading] = useState(true);
-  
+
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -62,16 +62,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     fetchFeatures();
   }, [user]);
-//   const loginUser = async (username: string, password: string) => {
-//     const loginPayload: LoginPayload = { username, password }; // create object
-//     const loggedInUser = await login(loginPayload); // pass it to API
-//     setUser(loggedInUser);
-//   };
+  //   const loginUser = async (username: string, password: string) => {
+  //     const loginPayload: LoginPayload = { username, password }; // create object
+  //     const loggedInUser = await login(loginPayload); // pass it to API
+  //     setUser(loggedInUser);
+  //   };
 
-    const loginUser = async (loginPayload: LoginPayload) => {
-        const loggedInUser = await login(loginPayload);
-        setUser(loggedInUser);
-    };
+  const loginUser = async (loginPayload: LoginPayload) => {
+    const loggedInUser = await login(loginPayload);
+    setUser(loggedInUser);
+  };
+
+  const loginWithGoogle = async (credential: string) => {
+    const loggedInUser = await googleLogin(credential);
+    setUser(loggedInUser);
+  };
 
 
   const logoutUser = async () => {
@@ -110,36 +115,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasFeature = (featureCode: string): boolean => {
-      return featureUtils.hasFeatureAccess(features, featureCode);
-    };
-  
+    return featureUtils.hasFeatureAccess(features, featureCode);
+  };
+
   const hasAnyFeature = (featureCodes: string[]): boolean => {
-      return featureUtils.hasAnyFeatureAccess(features, featureCodes);
-    };
-      
+    return featureUtils.hasAnyFeatureAccess(features, featureCodes);
+  };
+
   const getActiveFeatures = (): UserFeature[] => {
-      return featureUtils.getActiveFeatures(features);
-    };
+    return featureUtils.getActiveFeatures(features);
+  };
   const getAccessibleFeatureCodes = (): string[] => {
-      return featureUtils.getAccessibleFeatureCodes(features);
-    };
-  
+    return featureUtils.getAccessibleFeatureCodes(features);
+  };
+
   const shouldRedirectToPayments = (featureCode: string): boolean => {
-      const hasAccess = featureUtils.hasFeatureAccess(features, featureCode);
-      return !hasAccess;
-    };
-  
+    const hasAccess = featureUtils.hasFeatureAccess(features, featureCode);
+    return !hasAccess;
+  };
+
   const getFeatureExpiryInfo = (featureCode: string): { hasFeature: boolean; isExpired: boolean; expiresOn: string | null } => {
-      return featureUtils.getFeatureExpiryInfo(features, featureCode);
-    };
+    return featureUtils.getFeatureExpiryInfo(features, featureCode);
+  };
 
 
-return (
-    <AuthContext.Provider value={{ 
-      user, 
+  return (
+    <AuthContext.Provider value={{
+      user,
       features,
-      loading, 
-      loginUser, 
+      loading,
+      loginUser,
+      loginWithGoogle,
       logoutUser,
       hasRole,
       isAdmin,
