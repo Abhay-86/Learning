@@ -17,7 +17,8 @@ from .serializers import (
     CompanySerializer, CompanyCreateSerializer, CompanyUpdateSerializer,
     HRContactSerializer, HRContactCreateSerializer, HRContactUpdateSerializer,
     HRContactListSerializer, BulkUploadResponseSerializer,
-    CompanyStatsSerializer, HRContactStatsSerializer
+    CompanyStatsSerializer, HRContactStatsSerializer,
+    CompanyBulkUploadSerializer, HRContactBulkUploadSerializer,
 )
 from .utils import FolderStructureManager
 
@@ -680,3 +681,248 @@ class HRContactStatsView(APIView):
         
         serializer = HRContactStatsSerializer(stats)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# ==================== BULK UPLOAD VIEWS ====================
+
+class CompanyBulkUploadView(APIView):
+    """Bulk upload companies from Excel file (Admin only)"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    from accounts.models import IsCustomAdmin
+    permission_classes = [IsAuthenticated, IsCustomAdmin, ReferlyPermission]
+    
+    @extend_schema(
+        request=CompanyBulkUploadSerializer,
+        responses={200: BulkUploadResponseSerializer}
+    )
+    def post(self, request):
+        import pandas as pd
+        from .utils import ExcelDataNormalizer
+        from django.db import transaction
+        
+        serializer = CompanyBulkUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        excel_file = serializer.validated_data['file']
+        
+        try:
+            # Read Excel file
+            df = pd.read_excel(excel_file)
+            
+            # Normalize column names
+            df = ExcelDataNormalizer.normalize_column_names(df)
+            
+            # Replace NaN with empty strings
+            df = df.fillna('')
+            
+            success_count = 0
+            error_count = 0
+            errors = []
+            created_companies = []
+            
+            for index, row in df.iterrows():
+                row_number = index + 2  # Excel row number (accounting for header)
+                
+                try:
+                    # Clean data
+                    cleaned = ExcelDataNormalizer.clean_company_data(row)
+                    
+                    # Validate required fields
+                    if not cleaned['name']:
+                        errors.append(f"Row {row_number}: Missing company name")
+                        error_count += 1
+                        continue
+                    
+                    if not cleaned['domain']:
+                        errors.append(f"Row {row_number}: Missing domain")
+                        error_count += 1
+                        continue
+                    
+                    # Generate company_id if not provided
+                    if 'company_id' in row and row.get('company_id'):
+                        company_id = str(row['company_id']).strip()
+                    else:
+                        # Auto-generate company_id from name
+                        base_id = cleaned['name'][:20].upper().replace(' ', '_')
+                        company_id = base_id
+                        counter = 1
+                        while Company.objects.filter(company_id=company_id).exists():
+                            company_id = f"{base_id}_{counter}"
+                            counter += 1
+                    
+                    # Check if company already exists
+                    if Company.objects.filter(company_id=company_id).exists():
+                        errors.append(f"Row {row_number}: Company ID '{company_id}' already exists")
+                        error_count += 1
+                        continue
+                    
+                    # Create company
+                    with transaction.atomic():
+                        company = Company.objects.create(
+                            company_id=company_id,
+                            name=cleaned['name'],
+                            domain=cleaned['domain'],
+                            industry=cleaned['industry'],
+                            location=cleaned['location'],
+                            employee_count_range=cleaned['employee_count_range'],
+                            company_size=cleaned['company_size'],
+                            linkedin_url=cleaned['linkedin_url'],
+                            linkedin_company_id=cleaned['linkedin_company_id'],
+                            is_active=True
+                        )
+                        created_companies.append(company.company_id)
+                        success_count += 1
+                
+                except Exception as e:
+                    errors.append(f"Row {row_number}: {str(e)}")
+                    error_count += 1
+            
+            return Response({
+                'success': True,
+                'message': f'Uploaded {success_count} companies',
+                'total_rows': len(df),
+                'created': success_count,
+                'errors': error_count,
+                'error_details': errors[:20],  # Limit to first 20 errors
+                'created_company_ids': created_companies[:10]  # Show first 10
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': f'Failed to process Excel file: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class HRContactBulkUploadView(APIView):
+    """Bulk upload HR contacts from Excel file (Admin only)"""
+    from accounts.models import IsCustomAdmin
+    permission_classes = [IsAuthenticated, IsCustomAdmin, ReferlyPermission]
+    
+    @extend_schema(
+        request=HRContactBulkUploadSerializer,
+        responses={200: BulkUploadResponseSerializer}
+    )
+    def post(self, request):
+        import pandas as pd
+        from .utils import ExcelDataNormalizer
+        from django.db import transaction
+        
+        serializer = HRContactBulkUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        excel_file = serializer.validated_data['file']
+        
+        try:
+            # Read Excel file
+            df = pd.read_excel(excel_file)
+            
+            # Normalize column names
+            df = ExcelDataNormalizer.normalize_column_names(df)
+            
+            # Replace NaN with empty strings
+            df = df.fillna('')
+            
+            success_count = 0
+            error_count = 0
+            errors = []
+            created_contacts = []
+            
+            for index, row in df.iterrows():
+                row_number = index + 2  # Excel row number (accounting for header)
+                
+                try:
+                    # Clean data
+                    cleaned = ExcelDataNormalizer.clean_hr_contact_data(row)
+                    
+                    # Validate required fields
+                    if not cleaned['first_name']:
+                        errors.append(f"Row {row_number}: Missing first name")
+                        error_count += 1
+                        continue
+                    
+                    if not cleaned['last_name']:
+                        errors.append(f"Row {row_number}: Missing last name")
+                        error_count += 1
+                        continue
+                    
+                    if not cleaned['email']:
+                        errors.append(f"Row {row_number}: Missing email")
+                        error_count += 1
+                        continue
+                    
+                    # Validate email format
+                    if not ExcelDataNormalizer.validate_email(cleaned['email']):
+                        errors.append(f"Row {row_number}: Invalid email format: {cleaned['email']}")
+                        error_count += 1
+                        continue
+                    
+                    # Check for duplicate email
+                    if HRContact.objects.filter(email=cleaned['email']).exists():
+                        errors.append(f"Row {row_number}: Email already exists: {cleaned['email']}")
+                        error_count += 1
+                        continue
+                    
+                    # Find company by company_id or company_name
+                    company = None
+                    if cleaned['company_id']:
+                        try:
+                            company = Company.objects.get(company_id=cleaned['company_id'], is_active=True)
+                        except Company.DoesNotExist:
+                            errors.append(f"Row {row_number}: Company ID not found: {cleaned['company_id']}")
+                            error_count += 1
+                            continue
+                    elif cleaned['company_name']:
+                        try:
+                            company = Company.objects.get(name__iexact=cleaned['company_name'], is_active=True)
+                        except Company.DoesNotExist:
+                            errors.append(f"Row {row_number}: Company name not found: {cleaned['company_name']}")
+                            error_count += 1
+                            continue
+                        except Company.MultipleObjectsReturned:
+                            errors.append(f"Row {row_number}: Multiple companies found with name: {cleaned['company_name']}")
+                            error_count += 1
+                            continue
+                    else:
+                        errors.append(f"Row {row_number}: Missing company reference (company_id or company_name)")
+                        error_count += 1
+                        continue
+                    
+                    # Create HR contact
+                    with transaction.atomic():
+                        hr_contact = HRContact.objects.create(
+                            company=company,
+                            first_name=cleaned['first_name'],
+                            last_name=cleaned['last_name'],
+                            email=cleaned['email'],
+                            phone=cleaned['phone'],
+                            linkedin_url=cleaned['linkedin_url'],
+                            email_verified=False,
+                            linkedin_verified=False,
+                            is_active=True
+                        )
+                        created_contacts.append(hr_contact.email)
+                        success_count += 1
+                
+                except Exception as e:
+                    errors.append(f"Row {row_number}: {str(e)}")
+                    error_count += 1
+            
+            return Response({
+                'success': True,
+                'message': f'Uploaded {success_count} HR contacts',
+                'total_rows': len(df),
+                'created': success_count,
+                'errors': error_count,
+                'error_details': errors[:20],  # Limit to first 20 errors
+                'created_emails': created_contacts[:10]  # Show first 10
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': f'Failed to process Excel file: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)

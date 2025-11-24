@@ -45,6 +45,10 @@ urlpatterns = [
     path('stats/companies/', views.CompanyStatsView.as_view(), name='company_stats'),
     path('stats/hr-contacts/', views.HRContactStatsView.as_view(), name='hr_contact_stats'),
     
+    # Bulk Upload Endpoints (Admin only)
+    path('bulk-upload/companies/', views.CompanyBulkUploadView.as_view(), name='company_bulk_upload'),
+    path('bulk-upload/hr-contacts/', views.HRContactBulkUploadView.as_view(), name='hr_contact_bulk_upload'),
+    
     # User Quota Endpoint
     path('quota/', views.UserQuotaView.as_view(), name='user_quota'),
 ]

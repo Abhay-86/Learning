@@ -250,6 +250,26 @@ class HRContactListSerializer(serializers.ModelSerializer):
 
 
 # Bulk Upload Serializers
+class CompanyBulkUploadSerializer(serializers.Serializer):
+    """Serializer for bulk company upload from Excel"""
+    file = serializers.FileField(required=True)
+    
+    def validate_file(self, value):
+        if not value.name.endswith(('.xlsx', '.xls')):
+            raise serializers.ValidationError("Only Excel files (.xlsx, .xls) are allowed")
+        return value
+
+
+class HRContactBulkUploadSerializer(serializers.Serializer):
+    """Serializer for bulk HR contact upload from Excel"""
+    file = serializers.FileField(required=True)
+    
+    def validate_file(self, value):
+        if not value.name.endswith(('.xlsx', '.xls')):
+            raise serializers.ValidationError("Only Excel files (.xlsx, .xls) are allowed")
+        return value
+
+
 class BulkUploadResponseSerializer(serializers.Serializer):
     """Serializer for bulk upload response"""
     success_count = serializers.IntegerField()
