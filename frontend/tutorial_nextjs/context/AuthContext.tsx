@@ -82,11 +82,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logoutUser = async () => {
     try {
       await logout(); // calls Django endpoint -> deletes cookies
-    } catch (error) {
-      console.error("Logout failed", error);
-    } finally {
       setUser(null);
       setFeatures([]);
+      // Redirect to home page after logout
+      window.location.href = '/';
+    } catch (err) {
+      console.error("Logout failed:", err);
+      // Even if logout API fails, clear local state and redirect
+      setUser(null);
+      setFeatures([]);
+      window.location.href = '/';
     }
   };
 

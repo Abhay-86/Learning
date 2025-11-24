@@ -19,9 +19,11 @@ import { Input } from "@/components/ui/input";
 import { registerUser, sendOTP } from "@/services/auth/authApi";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { useAuth } from "@/context/AuthContext";
 
-export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
-
+export function SignupForm({ onSwitchToLogin, onVerificationNeeded, onSuccess, ...props }: React.ComponentProps<typeof Card> & { onSwitchToLogin?: () => void; onVerificationNeeded?: (email: string) => void; onSuccess?: () => void }) {
+  const { loginWithGoogle } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
     first_name: "",
@@ -34,8 +36,29 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) return;
+    setLoading(true);
+    setError("");
+
+    try {
+      await loginWithGoogle(credentialResponse.credential);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (err: any) {
+      setError("Google signup failed. Please try again.");
+      console.error("Google signup error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -67,9 +90,15 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       });
 
       // Step 4: Redirect to verification page with email pre-filled
-      setTimeout(() => {
-        router.push(`/auth/verify-email?email=${encodeURIComponent(userEmail)}`);
-      }, 150);
+      // If verification is needed (which it is), handle it
+      if (onVerificationNeeded) {
+        onVerificationNeeded(userEmail);
+      } else {
+        // Fallback to redirect
+        setTimeout(() => {
+          router.push(`/auth/verify-email?email=${encodeURIComponent(userEmail)}`);
+        }, 150);
+      }
     } catch (err: any) {
       console.error(err);
       // Check if registration succeeded but OTP sending failed
@@ -193,21 +222,52 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               <Button type="submit" disabled={loading}>
                 {loading ? "Creating Account..." : "Create Account"}
               </Button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError("Google signup failed")}
+                  theme="outline"
+                  width="100%"
+                />
+              </div>
+
               <FieldDescription className="px-6 text-center mt-2">
                 Already have an account?{" "}
-                <a href="/auth/login" className="underline">
-                  Sign in
-                </a>
+                {onSwitchToLogin ? (
+                  <button
+                    type="button"
+                    onClick={onSwitchToLogin}
+                    className="underline cursor-pointer"
+                  >
+                    Sign in
+                  </button>
+                ) : (
+                  <a href="/auth/login" className="underline">
+                    Sign in
+                  </a>
+                )}
               </FieldDescription>
             </Field>
           </FieldGroup>
 
           {message && (
             <div className={`text-center mt-4 text-sm ${message.includes('🎉') || message.includes('📧')
-                ? 'text-green-600'
-                : message.includes('⚠️')
-                  ? 'text-yellow-600'
-                  : 'text-red-600'
+              ? 'text-green-600'
+              : message.includes('⚠️')
+                ? 'text-yellow-600'
+                : 'text-red-600'
               }`}>
               {message}
             </div>

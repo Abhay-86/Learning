@@ -22,7 +22,7 @@ import { useRouter } from "next/navigation";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { Eye, EyeOff } from "lucide-react";
 
-export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
+export function LoginForm({ className, onSwitchToSignup, onSuccess, ...props }: React.ComponentProps<"div"> & { onSwitchToSignup?: () => void; onSuccess?: () => void }) {
   const { loginUser, loginWithGoogle } = useAuth();
   const router = useRouter();
 
@@ -39,7 +39,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
     try {
       await loginUser({ email, password });
-      router.push("/dashboard");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError("Invalid email or password");
     } finally {
@@ -58,7 +62,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
     try {
       await loginWithGoogle(credentialResponse.credential);
-      router.push("/dashboard");
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError("Google login failed. Please try again.");
       console.error("Google login error:", err);
@@ -145,11 +153,21 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   />
                 </div>
 
-                <FieldDescription className="text-center">
-                  Don&apos;t have an account?{" "}
-                  <a href="/auth/signup" className="underline">
-                    Sign up
-                  </a>
+                <FieldDescription className="px-6 text-center mt-2">
+                  Don't have an account?{" "}
+                  {onSwitchToSignup ? (
+                    <button
+                      type="button"
+                      onClick={onSwitchToSignup}
+                      className="underline cursor-pointer"
+                    >
+                      Sign up
+                    </button>
+                  ) : (
+                    <a href="/auth/signup" className="underline">
+                      Sign up
+                    </a>
+                  )}
                   <br />
                   Need to verify your email?{" "}
                   <a href="/auth/verify-email" className="underline">

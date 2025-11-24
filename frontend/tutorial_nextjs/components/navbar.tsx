@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,10 +12,13 @@ import {
 } from "@/components/ui/navigation-menu";
 import { ModeToggle } from "@/components/toggle";
 import { MenuIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { roleUtils } from "@/lib/roleUtils";
 import { UserRole } from "@/types/types";
+import { SignupModal } from "./SignupModal";
+import { LoginModal } from "./LoginModal";
+import { VerificationModal } from "@/components/VerificationModal";
 
 interface NavigationLink {
   name: string;
@@ -25,11 +28,51 @@ interface NavigationLink {
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const { user, loading, logoutUser, isAdmin, isManager, canAccess } = useAuth();
 
-  const publicLinks = [{ name: "Home", href: "/" }];
-  
+  useEffect(() => {
+    if (user) {
+      setLoginOpen(false);
+      setSignupOpen(false);
+      setVerificationOpen(false);
+    }
+  }, [user]);
+
+  const handleSwitchToSignup = () => {
+    setLoginOpen(false);
+    setSignupOpen(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setSignupOpen(false);
+    setLoginOpen(true);
+  };
+
+  const handleVerificationNeeded = (email: string) => {
+    setSignupOpen(false);
+    setVerificationEmail(email);
+    setVerificationOpen(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setLoginOpen(false);
+    router.push("/dashboard");
+  };
+
+  const handleVerificationSuccess = () => {
+    setVerificationOpen(false);
+    setLoginOpen(true); // Open login after verification
+  };
+
+  // Show Home only when not logged in
+  const publicLinks = !user ? [{ name: "Home", href: "/" }] : [];
+
   // Role-based navigation links
   const getNavigationLinks = (): NavigationLink[] => {
     if (!user) return [];
@@ -54,10 +97,10 @@ export function Navbar() {
       );
     }
 
-    // User profile links (all authenticated users)
+    // User profile links (all authenticated users) - updated paths
     links.push(
-      { name: "Profile", href: "/profile", role: "USER" },
-      { name: "Settings", href: "/settings", role: "USER" }
+      { name: "Profile", href: "/dashboard/profile", role: "USER" },
+      { name: "Settings", href: "/dashboard/settings", role: "USER" }
     );
 
     return links.filter(link => canAccess(link.role));
@@ -109,18 +152,18 @@ export function Navbar() {
           <ModeToggle />
           {!loading && !user ? (
             <>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/auth/login">Login</Link>
+              <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
+                Login
               </Button>
-              <Button size="sm" asChild>
-                <Link href="/auth/signup">Sign Up</Link>
+              <Button size="sm" onClick={() => setSignupOpen(true)}>
+                Sign Up
               </Button>
             </>
           ) : (
             <>
               {/* <div className="flex items-center gap-2"> */}
-                {/* <span className="text-sm">Hi, {user?.username}</span> */}
-                {/* <span className={`text-xs px-2 py-1 rounded-full ${
+              {/* <span className="text-sm">Hi, {user?.username}</span> */}
+              {/* <span className={`text-xs px-2 py-1 rounded-full ${
                   user?.role === 'ADMIN' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
                   user?.role === 'MANAGER' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                   'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
@@ -176,17 +219,39 @@ export function Navbar() {
 
             {!loading && !user && (
               <>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Link href="/auth/login">Login</Link>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => { setLoginOpen(true); setMobileOpen(false); }}>
+                  Login
                 </Button>
-                <Button size="sm" className="w-full">
-                  <Link href="/auth/signup">Sign Up</Link>
+                <Button size="sm" className="w-full" onClick={() => { setSignupOpen(true); setMobileOpen(false); }}>
+                  Sign Up
                 </Button>
               </>
             )}
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <LoginModal
+        open={loginOpen}
+        onOpenChange={setLoginOpen}
+        onSwitchToSignup={handleSwitchToSignup}
+        onSuccess={handleLoginSuccess}
+      />
+      <SignupModal
+        open={signupOpen}
+        onOpenChange={setSignupOpen}
+        onSwitchToLogin={handleSwitchToLogin}
+        onVerificationNeeded={handleVerificationNeeded}
+        onSuccess={handleLoginSuccess}
+      />
+      <VerificationModal
+        open={verificationOpen}
+        onOpenChange={setVerificationOpen}
+        email={verificationEmail}
+        onSuccess={handleVerificationSuccess}
+      />
     </header>
   );
 }
+
