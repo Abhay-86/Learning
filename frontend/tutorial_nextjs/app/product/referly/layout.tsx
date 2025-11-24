@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { EmailServiceSidebar } from "./components/email-service-sidebar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
+import { useAuth } from "@/context/AuthContext"
 
 export default function EmailServiceLayout({
   children,
@@ -15,10 +16,11 @@ export default function EmailServiceLayout({
 }) {
   const [selectedFileId, setSelectedFileId] = useState<string>()
   const pathname = usePathname()
-  
+  const { isAdmin } = useAuth()
+
   // Debug log to confirm layout is running
   console.log("🔍 Email service access check via layout.tsx...")
-  
+
   const handleFileSelect = (file: any) => {
     setSelectedFileId(file.id)
     // Pass the file selection to the page component
@@ -32,8 +34,8 @@ export default function EmailServiceLayout({
     console.log(`Delete ${fileType} requested for ID:`, fileId)
     // Dispatch event to refresh the file list
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('fileDeleted', { 
-        detail: { fileId, fileType } 
+      window.dispatchEvent(new CustomEvent('fileDeleted', {
+        detail: { fileId, fileType }
       }))
     }
   }
@@ -48,51 +50,58 @@ export default function EmailServiceLayout({
     if (pathname === '/product/referly/emails') return 'emails'
     return 'home' // default
   }
-  
+
   return (
     <EmailServiceRouteGuard redirectOnNoAccess={true}>
       <SidebarProvider>
-        <EmailServiceSidebar 
+        <EmailServiceSidebar
           onFileSelect={handleFileSelect}
           selectedFileId={selectedFileId}
           onDeleteResume={handleDeleteFile}
         />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Header with Sidebar Toggle and Tabs */}
-            <div className="shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex items-center px-4 py-3">
-                <button className="p-2 rounded-md hover:bg-muted transition-all mr-4">
-                  <SidebarTrigger className="w-5 h-5" />
-                </button>
-                
-                {/* Navigation Tabs */}
-                <Tabs value={getActiveTab()} className="flex-1">
-                  <TabsList className="grid w-full max-w-md grid-cols-3">
-                    <TabsTrigger value="home" asChild>
-                      <Link href="/product/referly" className="cursor-pointer">
-                        🏠 Home
-                      </Link>
-                    </TabsTrigger>
-                    <TabsTrigger value="dashboard" asChild>
-                      <Link href="/product/referly/email_dashboard" className="cursor-pointer">
-                        📊 Dashboard
-                      </Link>
-                    </TabsTrigger>
-                    <TabsTrigger value="send-email" asChild>
-                      <Link href="/product/referly/send_email" className="cursor-pointer">
-                        📧 Send Email
-                      </Link>
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-            </div>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header with Sidebar Toggle and Tabs */}
+          <div className="shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center px-4 py-3">
+              <button className="p-2 rounded-md hover:bg-muted transition-all mr-4">
+                <SidebarTrigger className="w-5 h-5" />
+              </button>
 
-            {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden">
-              {children}
+              {/* Navigation Tabs */}
+              <Tabs value={getActiveTab()} className="flex-1">
+                <TabsList className={`grid w-full max-w-md ${isAdmin() ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  <TabsTrigger value="home" asChild>
+                    <Link href="/product/referly" className="cursor-pointer">
+                      🏠 Home
+                    </Link>
+                  </TabsTrigger>
+                  <TabsTrigger value="dashboard" asChild>
+                    <Link href="/product/referly/email_dashboard" className="cursor-pointer">
+                      📊 Dashboard
+                    </Link>
+                  </TabsTrigger>
+                  <TabsTrigger value="send-email" asChild>
+                    <Link href="/product/referly/send_email" className="cursor-pointer">
+                      📧 Send Email
+                    </Link>
+                  </TabsTrigger>
+                  {isAdmin() && (
+                    <TabsTrigger value="emails" asChild>
+                      <Link href="/product/referly/emails" className="cursor-pointer">
+                        📤 Bulk Upload
+                      </Link>
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              </Tabs>
             </div>
           </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-hidden">
+            {children}
+          </div>
+        </div>
       </SidebarProvider>
     </EmailServiceRouteGuard>
   )
