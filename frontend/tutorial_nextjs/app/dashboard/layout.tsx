@@ -9,7 +9,9 @@ import {
     LayoutDashboard,
     Settings,
     LogOut,
-    User
+    User,
+    Menu,
+    X
 } from "lucide-react";
 
 export default function DashboardLayout({
@@ -21,6 +23,7 @@ export default function DashboardLayout({
     const router = useRouter();
     const pathname = usePathname();
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -32,8 +35,32 @@ export default function DashboardLayout({
     return (
         <AuthGuard>
             <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+                {/* Mobile Overlay */}
+                {sidebarOpen && (
+                    <div 
+                        className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" 
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+
                 {/* Sidebar */}
-                <aside className="hidden lg:flex lg:flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 fixed h-screen">
+                <aside className={`
+                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                    lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50
+                    w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
+                    transition-transform duration-300 ease-in-out
+                    flex flex-col h-screen
+                `}>
+                    {/* Mobile Close Button */}
+                    <div className="lg:hidden flex justify-end p-4">
+                        <button
+                            onClick={() => setSidebarOpen(false)}
+                            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+
                     {/* Logo/Brand */}
                     <div className="p-6 border-b border-gray-200 dark:border-gray-800">
                         <div className="flex items-center gap-2">
@@ -48,12 +75,13 @@ export default function DashboardLayout({
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 p-4 space-y-2">
+                    <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                             Platform
                         </div>
                         <Link
                             href="/dashboard"
+                            onClick={() => setSidebarOpen(false)}
                             className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${isActive('/dashboard')
                                     ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-muted-foreground hover:text-foreground'
@@ -64,6 +92,7 @@ export default function DashboardLayout({
                         </Link>
                         <Link
                             href="/dashboard/settings"
+                            onClick={() => setSidebarOpen(false)}
                             className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${isActive('/dashboard/settings')
                                     ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-muted-foreground hover:text-foreground'
@@ -74,6 +103,7 @@ export default function DashboardLayout({
                         </Link>
                         <Link
                             href="/dashboard/profile"
+                            onClick={() => setSidebarOpen(false)}
                             className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${isActive('/dashboard/profile')
                                     ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-muted-foreground hover:text-foreground'
@@ -84,8 +114,8 @@ export default function DashboardLayout({
                         </Link>
                     </nav>
 
-                    {/* User Footer */}
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+                    {/* User Footer - Always visible at bottom */}
+                    <div className="p-4 border-t border-gray-200 dark:border-gray-800 mt-auto">
                         <button
                             onClick={() => {
                                 logoutUser();
@@ -99,32 +129,44 @@ export default function DashboardLayout({
                     </div>
                 </aside>
 
-                {/* Main Content - with left margin for sidebar */}
-                <main className="flex-1 lg:ml-64 overflow-auto">
-                    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-                        {/* Header */}
-                        <div className="mb-8">
-                            <div className="flex items-center justify-between mb-2">
-                                <h1 className="text-3xl font-bold">
-                                    {pathname === '/dashboard' && 'Dashboard'}
-                                    {pathname === '/dashboard/settings' && 'Settings'}
-                                    {pathname === '/dashboard/profile' && 'Profile'}
-                                </h1>
-                                <div className="text-sm text-muted-foreground">
-                                    Last updated: {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                            </div>
-                            <p className="text-muted-foreground">
-                                {pathname === '/dashboard' && 'Monitor and manage your application features'}
-                                {pathname === '/dashboard/settings' && 'Manage your account settings and preferences'}
-                                {pathname === '/dashboard/profile' && 'View and update your profile information'}
-                            </p>
-                        </div>
-
-                        {/* Page Content */}
-                        {children}
+                {/* Main Content */}
+                <div className="flex-1 lg:ml-64">
+                    {/* Mobile Header */}
+                    <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            <Menu className="h-5 w-5" />
+                        </button>
                     </div>
-                </main>
+
+                    <main className="overflow-auto">
+                        <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+                            {/* Header */}
+                            <div className="mb-8">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h1 className="text-3xl font-bold">
+                                        {pathname === '/dashboard' && 'Dashboard'}
+                                        {pathname === '/dashboard/settings' && 'Settings'}
+                                        {pathname === '/dashboard/profile' && 'Profile'}
+                                    </h1>
+                                    <div className="text-sm text-muted-foreground">
+                                        Last updated: {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                </div>
+                                <p className="text-muted-foreground">
+                                    {pathname === '/dashboard' && 'Monitor and manage your application features'}
+                                    {pathname === '/dashboard/settings' && 'Manage your account settings and preferences'}
+                                    {pathname === '/dashboard/profile' && 'View and update your profile information'}
+                                </p>
+                            </div>
+
+                            {/* Page Content */}
+                            {children}
+                        </div>
+                    </main>
+                </div>
             </div>
         </AuthGuard>
     );
