@@ -114,12 +114,11 @@ class ExcelDataNormalizer:
             'companyname': 'company_name',
             'company_id': 'company_id',
             'companyid': 'company_id',
-            'website': 'domain',
-            'company_website': 'domain',
+            'domain': 'website',
+            'company_website': 'website',
             'linkedin': 'linkedin_url',
             'linkedin_profile': 'linkedin_url',
             'company_linkedin': 'linkedin_url',
-            'size': 'company_size',
             'employees': 'employee_count_range',
             'employee_count': 'employee_count_range',
             
@@ -146,13 +145,13 @@ class ExcelDataNormalizer:
         
         # Required fields
         cleaned['name'] = str(row.get('company_name', '')).strip() if row.get('company_name') else ''
-        cleaned['domain'] = str(row.get('domain', '')).strip() if row.get('domain') else ''
+        cleaned['website'] = str(row.get('website', '')).strip() if row.get('website') else ''
         
         # Optional fields
         cleaned['industry'] = str(row.get('industry', '')).strip() if row.get('industry') else ''
         cleaned['location'] = str(row.get('location', '')).strip() if row.get('location') else ''
         cleaned['employee_count_range'] = str(row.get('employee_count_range', '')).strip() if row.get('employee_count_range') else ''
-        cleaned['company_size'] = str(row.get('company_size', '')).strip() if row.get('company_size') else ''
+        cleaned['about_us'] = str(row.get('about_us', '')).strip() if row.get('about_us') else ''
         cleaned['linkedin_url'] = str(row.get('linkedin_url', '')).strip() if row.get('linkedin_url') else ''
         cleaned['linkedin_company_id'] = str(row.get('linkedin_company_id', '')).strip() if row.get('linkedin_company_id') else ''
         

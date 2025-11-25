@@ -150,8 +150,8 @@ class CompanySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Company
-        fields = ['id', 'company_id', 'name', 'domain', 'linkedin_url', 'linkedin_company_id',
-                 'industry', 'location', 'employee_count_range', 'company_size', 
+        fields = ['id', 'company_id', 'name', 'website', 'linkedin_url', 'linkedin_company_id',
+                 'industry', 'location', 'employee_count_range', 'about_us', 
                  'hr_contacts_count', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 'hr_contacts_count']
     
@@ -163,8 +163,8 @@ class CompanyCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating companies"""
     class Meta:
         model = Company
-        fields = ['company_id', 'name', 'domain', 'linkedin_url', 'linkedin_company_id',
-                 'industry', 'location', 'employee_count_range', 'company_size']
+        fields = ['company_id', 'name', 'website', 'linkedin_url', 'linkedin_company_id',
+                 'industry', 'location', 'employee_count_range', 'about_us']
     
     def validate_company_id(self, value):
         if Company.objects.filter(company_id=value).exists():
@@ -176,8 +176,8 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating companies"""
     class Meta:
         model = Company
-        fields = ['name', 'domain', 'linkedin_url', 'linkedin_company_id',
-                 'industry', 'location', 'employee_count_range', 'company_size', 'is_active']
+        fields = ['name', 'website', 'linkedin_url', 'linkedin_company_id',
+                 'industry', 'location', 'employee_count_range', 'about_us', 'is_active']
 
 
 # HR Contact Serializers

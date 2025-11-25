@@ -109,14 +109,14 @@ class Company(models.Model):
     
     # Basic company info
     name = models.CharField(max_length=255)
-    domain = models.URLField()  # company website domain
+    website = models.URLField(blank=True)  # company website
     linkedin_url = models.URLField(blank=True)
     
     # Additional company details
     industry = models.CharField(max_length=100, blank=True)
     location = models.CharField(max_length=255, blank=True)
     employee_count_range = models.CharField(max_length=50, blank=True)
-    company_size = models.CharField(max_length=20, blank=True)
+    about_us = models.TextField(blank=True)  # Company description/about section
     
     # Status fields
     is_active = models.BooleanField(default=True)
