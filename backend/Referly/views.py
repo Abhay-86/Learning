@@ -313,10 +313,9 @@ class CompanyListView(APIView):
     
     @extend_schema(
         parameters=[
-            OpenApiParameter(name='search', type=str, description='Search in company name or domain'),
+            OpenApiParameter(name='search', type=str, description='Search in company name or website'),
             OpenApiParameter(name='industry', type=str, description='Filter by industry'),
             OpenApiParameter(name='location', type=str, description='Filter by location'),
-            OpenApiParameter(name='company_size', type=str, description='Filter by company size'),
         ],
         responses={200: CompanySerializer(many=True)}
     )
@@ -328,7 +327,7 @@ class CompanyListView(APIView):
         if search:
             companies = companies.filter(
                 Q(name__icontains=search) | 
-                Q(domain__icontains=search) |
+                Q(website__icontains=search) |
                 Q(company_id__icontains=search)
             )
         
@@ -341,11 +340,7 @@ class CompanyListView(APIView):
         location = request.query_params.get('location', None)
         if location:
             companies = companies.filter(location__icontains=location)
-        
-        # Filter by company size
-        company_size = request.query_params.get('company_size', None)
-        if company_size:
-            companies = companies.filter(company_size__icontains=company_size)
+
         
         serializer = CompanySerializer(companies, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -426,7 +421,7 @@ class CompanySearchView(APIView):
         if query:
             companies = companies.filter(
                 Q(name__icontains=query) |
-                Q(domain__icontains=query) |
+                Q(website__icontains=query) |
                 Q(industry__icontains=query) |
                 Q(location__icontains=query)
             )
@@ -656,7 +651,6 @@ class CompanyStatsView(APIView):
             'total_companies': companies.count(),
             'active_companies': companies.filter(is_active=True).count(),
             'companies_by_industry': dict(companies.values('industry').annotate(count=Count('industry')).values_list('industry', 'count')),
-            'companies_by_size': dict(companies.values('company_size').annotate(count=Count('company_size')).values_list('company_size', 'count')),
         }
         
         serializer = CompanyStatsSerializer(stats)
@@ -735,8 +729,8 @@ class CompanyBulkUploadView(APIView):
                         error_count += 1
                         continue
                     
-                    if not cleaned['domain']:
-                        errors.append(f"Row {row_number}: Missing domain")
+                    if not cleaned['website']:
+                        errors.append(f"Row {row_number}: Missing website")
                         error_count += 1
                         continue
                     
@@ -763,11 +757,11 @@ class CompanyBulkUploadView(APIView):
                         company = Company.objects.create(
                             company_id=company_id,
                             name=cleaned['name'],
-                            domain=cleaned['domain'],
+                            website=cleaned['website'],
                             industry=cleaned['industry'],
                             location=cleaned['location'],
                             employee_count_range=cleaned['employee_count_range'],
-                            company_size=cleaned['company_size'],
+                            about_us=cleaned['about_us'],
                             linkedin_url=cleaned['linkedin_url'],
                             linkedin_company_id=cleaned['linkedin_company_id'],
                             is_active=True

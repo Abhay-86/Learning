@@ -103,8 +103,8 @@ export default function BulkUploadPage() {
                 <CardContent className="space-y-4">
                     <div>
                         <p className="text-sm text-muted-foreground mb-2">
-                            <strong>Required columns:</strong> company_name, domain<br />
-                            <strong>Optional columns:</strong> company_id, industry, location, company_size, employee_count_range, linkedin_url
+                            <strong>Required columns:</strong> company_name, website<br />
+                            <strong>Optional columns:</strong> company_id, industry, location, employee_count_range, about_us, linkedin_url
                         </p>
                     </div>
 
@@ -252,7 +252,7 @@ export default function BulkUploadPage() {
                                 <thead>
                                     <tr className="border-b">
                                         <th className="text-left p-1">company_name</th>
-                                        <th className="text-left p-1">domain</th>
+                                        <th className="text-left p-1">website</th>
                                         <th className="text-left p-1">industry</th>
                                         <th className="text-left p-1">location</th>
                                     </tr>

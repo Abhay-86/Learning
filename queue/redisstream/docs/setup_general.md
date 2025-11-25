@@ -1,0 +1,1 @@
+# Setup redis stream
