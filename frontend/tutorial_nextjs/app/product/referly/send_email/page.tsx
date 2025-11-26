@@ -1,18 +1,35 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Send, FileText, Upload, Users, Plus } from "lucide-react"
+import { Send, FileText, Upload, Users, Plus, Mail, Check, AlertCircle, Shield, Lock } from "lucide-react"
+import { getGmailPermissionStatus, getGmailAuthURL, acceptGmailPrivacy } from "@/services/auth/gmailApi"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function SendEmailPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("")
   const [recipients, setRecipients] = useState<string[]>(["john@example.com"])
   const [newRecipient, setNewRecipient] = useState("")
+
+  // Gmail permission state
+  const [hasGmailPermission, setHasGmailPermission] = useState(false)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [gmailLoading, setGmailLoading] = useState(true)
+  const [connectingGmail, setConnectingGmail] = useState(false)
+  const [showPrivacyDialog, setShowPrivacyDialog] = useState(false)
+  const [acceptingPrivacy, setAcceptingPrivacy] = useState(false)
 
   // Mock templates data
   const templates = [
@@ -20,6 +37,55 @@ export default function SendEmailPage() {
     { id: "2", name: "job-application.html", subject: "Job Application Follow-up" },
     { id: "3", name: "follow-up.html", subject: "Following up on our conversation" },
   ]
+
+  // Check Gmail permission on mount
+  useEffect(() => {
+    checkGmailPermission()
+  }, [])
+
+  const checkGmailPermission = async () => {
+    try {
+      const status = await getGmailPermissionStatus()
+      setHasGmailPermission(status.has_permission)
+      setPrivacyAccepted(status.privacy_accepted)
+    } catch (error) {
+      console.error("Error checking Gmail permission:", error)
+    } finally {
+      setGmailLoading(false)
+    }
+  }
+
+  const handleConnectGmail = () => {
+    // Show privacy dialog first
+    setShowPrivacyDialog(true)
+  }
+
+  const handleAcceptPrivacy = async () => {
+    setAcceptingPrivacy(true)
+    try {
+      await acceptGmailPrivacy()
+      setPrivacyAccepted(true)
+    } catch (error) {
+      console.error("Error accepting privacy:", error)
+      alert("Failed to accept privacy policy. Please try again.")
+    } finally {
+      setAcceptingPrivacy(false)
+    }
+  }
+
+  const handleConfirmConnect = async () => {
+    setShowPrivacyDialog(false)
+    setConnectingGmail(true)
+    try {
+      const { auth_url } = await getGmailAuthURL()
+      // Redirect to Google OAuth
+      window.location.href = auth_url
+    } catch (error) {
+      console.error("Error connecting Gmail:", error)
+      alert("Failed to connect Gmail. Please try again.")
+      setConnectingGmail(false)
+    }
+  }
 
   const handleAddRecipient = () => {
     if (newRecipient && !recipients.includes(newRecipient)) {
@@ -33,6 +99,10 @@ export default function SendEmailPage() {
   }
 
   const handleSendEmail = () => {
+    if (!hasGmailPermission) {
+      alert("Please connect your Gmail account first")
+      return
+    }
     // TODO: Implement email sending logic
     console.log("Sending email with:", {
       template: selectedTemplate,
@@ -69,11 +139,10 @@ export default function SendEmailPage() {
                 {templates.map((template) => (
                   <div
                     key={template.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedTemplate === template.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
-                    }`}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedTemplate === template.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                      }`}
                     onClick={() => setSelectedTemplate(template.id)}
                   >
                     <div className="flex justify-between items-start">
@@ -224,25 +293,82 @@ export default function SendEmailPage() {
             </CardContent>
           </Card>
 
+          {/* Gmail Connection Card */}
+          <Card className={hasGmailPermission ? "border-green-500/50" : "border-orange-500/50"}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Gmail Connection
+              </CardTitle>
+              <CardDescription>
+                {hasGmailPermission
+                  ? "Your Gmail is connected"
+                  : "Connect Gmail to send emails"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {gmailLoading ? (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  Checking connection...
+                </div>
+              ) : hasGmailPermission ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <Check className="h-4 w-4" />
+                    <span>Gmail connected successfully</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={checkGmailPermission}
+                  >
+                    Refresh Status
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-lg">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>Connect your Gmail account to send emails</span>
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={handleConnectGmail}
+                    disabled={connectingGmail}
+                  >
+                    {connectingGmail ? (
+                      <>Connecting...</>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Connect Gmail
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Send Actions */}
           <Card>
             <CardHeader>
               <CardTitle>Send Options</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 onClick={handleSendEmail}
                 disabled={!selectedTemplate || recipients.length === 0}
               >
                 <Send className="h-4 w-4 mr-2" />
                 Send Now
               </Button>
-              
+
               <Button variant="outline" className="w-full">
                 Schedule Send
               </Button>
-              
+
               <Button variant="ghost" className="w-full">
                 Save as Draft
               </Button>
@@ -273,6 +399,96 @@ export default function SendEmailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Privacy Notice Dialog */}
+      <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-600" />
+              Gmail Permission Required
+            </DialogTitle>
+            <DialogDescription>
+              Please review the permissions we're requesting
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">We will request permission to:</h4>
+
+              <div className="space-y-2">
+                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                  <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Send emails on your behalf</p>
+                    <p className="text-xs text-muted-foreground">
+                      Send emails using your Gmail account to HR contacts
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <Lock className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium">Your privacy is protected</p>
+                  <ul className="text-xs text-muted-foreground space-y-1 mt-1 ml-4 list-disc">
+                    <li>We only request permission to <strong>send emails</strong></li>
+                    <li>We <strong>cannot read</strong> your existing emails</li>
+                    <li>Your refresh token is stored securely</li>
+                    <li>You can revoke access anytime</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs text-amber-800">
+                <strong>Note:</strong> You'll be redirected to Google to grant permission.
+                After granting access, you'll be redirected back to this application.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowPrivacyDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={privacyAccepted ? handleConfirmConnect : handleAcceptPrivacy}
+              disabled={connectingGmail || acceptingPrivacy}
+            >
+              {privacyAccepted ? (
+                connectingGmail ? (
+                  "Connecting..."
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Connect with Google
+                  </>
+                )
+              ) : (
+                acceptingPrivacy ? (
+                  "Accepting..."
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Accept Privacy Policy
+                  </>
+                )
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
