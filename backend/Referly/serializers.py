@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Template, Resume, UserQuota, Company, HRContact, Job
 from django.contrib.auth.models import User
 import base64
+import hashlib
 
 
 class TemplateSerializer(serializers.ModelSerializer):
@@ -167,13 +168,25 @@ class CompanyCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating companies"""
     class Meta:
         model = Company
-        fields = ['company_id', 'name', 'website', 'about_us', 'headquarters', 
-                 'founded_year', 'company_size', 'company_url']
-    
-    def validate_company_id(self, value):
-        if Company.objects.filter(company_id=value).exists():
-            raise serializers.ValidationError("Company with this ID already exists.")
-        return value
+        fields = ['name', 'website', 'company_url', 'company_size', 'headquarters', 'about_us']
+
+    def validate_name(self, value):
+        if Company.objects.filter(name__iexact=value.strip()).exists():
+            raise serializers.ValidationError("Company with this name already exists.")
+        return value.strip()
+
+    def create(self, validated_data):
+        name = validated_data.get('name', '').strip()
+        base_hash = hashlib.sha1(name.encode('utf-8')).hexdigest()[:10]
+        candidate_id = base_hash.upper()
+        # Ensure uniqueness by appending a counter if needed
+        counter = 1
+        while Company.objects.filter(company_id=candidate_id).exists():
+            candidate_id = f"{base_hash.upper()}_{counter}"
+            counter += 1
+
+        validated_data['company_id'] = candidate_id
+        return super().create(validated_data)
 
 
 class CompanyUpdateSerializer(serializers.ModelSerializer):
