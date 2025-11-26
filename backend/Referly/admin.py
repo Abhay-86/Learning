@@ -19,7 +19,7 @@ class ResumeAdmin(admin.ModelAdmin):
     search_fields = ['name', 'user__username']
     ordering = ['user', 'user_resume_id']
     readonly_fields = ['user_resume_id', 'file_size', 'created_at', 'updated_at']
-    exclude = ['file_content']  # Hide binary content from admin interface
+    exclude = ['file_content']
 
 
 @admin.register(UserQuota)
@@ -32,9 +32,10 @@ class UserQuotaAdmin(admin.ModelAdmin):
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ['company_id', 'name', 'industry', 'location', 'is_active', 'created_at']
-    list_filter = ['is_active', 'industry', 'created_at']
-    search_fields = ['company_id', 'name', 'industry', 'location']
+    # Removed: industry, location
+    list_display = ['company_id', 'name', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['company_id', 'name']
     ordering = ['company_id']
     readonly_fields = ['created_at', 'updated_at']
 
@@ -50,20 +51,16 @@ class HRContactAdmin(admin.ModelAdmin):
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = ['title', 'company', 'location', 'job_type', 'salary_min', 'salary_max', 'is_active', 'posted_date']
-    list_filter = ['is_active', 'job_type', 'industry', 'company', 'posted_date']
-    search_fields = ['title', 'description', 'company__name', 'location', 'industry']
+    # Removed: location, salary_min, salary_max, industry, description
+    list_display = ['title', 'company', 'job_type', 'is_active', 'posted_date']
+    list_filter = ['is_active', 'job_type', 'company', 'posted_date']
+    search_fields = ['title', 'company__name']
     ordering = ['-posted_date']
     readonly_fields = ['posted_date', 'created_at', 'updated_at']
+
     fieldsets = (
         ('Job Information', {
-            'fields': ('title', 'company', 'description', 'job_type')
-        }),
-        ('Location & Industry', {
-            'fields': ('location', 'industry')
-        }),
-        ('Compensation', {
-            'fields': ('salary_min', 'salary_max')
+            'fields': ('title', 'company', 'job_type')
         }),
         ('Requirements', {
             'fields': ('requirements',)
