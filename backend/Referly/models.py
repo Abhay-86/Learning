@@ -138,8 +138,12 @@ class HRContact(models.Model):
     # Basic HR Contact Info
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)  # Unique emails globally
+    email = models.EmailField(unique=True)  
     
+    # Verification flags
+    email_verified = models.BooleanField(default=False)
+    linkedin_verified = models.BooleanField(default=False)
+
     # Status & Metadata
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

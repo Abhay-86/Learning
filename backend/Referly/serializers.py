@@ -194,7 +194,7 @@ class HRContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = HRContact
         fields = ['id', 'company', 'company_id', 'company_name', 'first_name', 'last_name', 'full_name',
-                 'email', 'is_active', 'created_at', 'updated_at']
+                 'email', 'email_verified', 'linkedin_verified', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 'full_name', 'company_name', 'company_id']
 
 
@@ -247,7 +247,7 @@ class HRContactListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = HRContact
-        fields = ['id', 'company_id', 'company_name', 'full_name', 'email', 'created_at']
+        fields = ['id', 'company_id', 'company_name', 'full_name', 'email', 'email_verified', 'linkedin_verified', 'created_at']
 
 
 # Bulk Upload Serializers
@@ -304,12 +304,23 @@ class JobSerializer(serializers.ModelSerializer):
     title_display = serializers.CharField(source='get_title_display', read_only=True)
     job_type_display = serializers.CharField(source='get_job_type_display', read_only=True)
     
+    # Expose whether this job has at least one active HR contact for its company
+    hasHR = serializers.SerializerMethodField()
+
     class Meta:
         model = Job
         fields = ['id', 'title', 'title_display', 'job_type', 'job_type_display', 'company', 
-                 'company_id', 'company_name', 'posted_date', 'created_at', 'updated_at', 'is_active']
+                 'company_id', 'company_name', 'posted_date', 'created_at', 'updated_at', 'is_active', 'hasHR']
         read_only_fields = ['id', 'created_at', 'updated_at', 'posted_date', 'company_name', 
-                           'company_id', 'title_display', 'job_type_display']
+                           'company_id', 'title_display', 'job_type_display', 'hasHR']
+
+    def get_hasHR(self, obj):
+        # If view annotated the queryset with `has_hr` (Exists subquery), prefer that value
+        if hasattr(obj, 'has_hr'):
+            return bool(getattr(obj, 'has_hr'))
+
+        # Fallback: perform a fast existence check
+        return obj.company.hr_contacts.filter(is_active=True).exists()
 
 
 class JobCreateSerializer(serializers.ModelSerializer):
@@ -347,7 +358,15 @@ class JobListSerializer(serializers.ModelSerializer):
     title_display = serializers.CharField(source='get_title_display', read_only=True)
     job_type_display = serializers.CharField(source='get_job_type_display', read_only=True)
     
+    # Expose whether this job has at least one active HR contact for its company
+    hasHR = serializers.SerializerMethodField()
+
     class Meta:
         model = Job
         fields = ['id', 'title', 'title_display', 'job_type', 'job_type_display', 
-                 'company_id', 'company_name', 'posted_date']
+                 'company_id', 'company_name', 'posted_date', 'hasHR']
+
+    def get_hasHR(self, obj):
+        if hasattr(obj, 'has_hr'):
+            return bool(getattr(obj, 'has_hr'))
+        return obj.company.hr_contacts.filter(is_active=True).exists()

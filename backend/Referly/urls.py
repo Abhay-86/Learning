@@ -33,7 +33,6 @@ urlpatterns = [
     # HR Contact Management Endpoints  
     path('hr-contacts/', views.HRContactListView.as_view(), name='hr_contact_list'),
     path('hr-contacts/create/', views.HRContactCreateView.as_view(), name='hr_contact_create'),
-    path('hr-contacts/search/', views.HRContactSearchView.as_view(), name='hr_contact_search'),
     path('hr-contacts/<int:hr_id>/', views.HRContactDetailView.as_view(), name='hr_contact_detail'),
     path('hr-contacts/by-company/<str:company_id>/', views.HRContactByCompanyView.as_view(), name='hr_by_company'),
     

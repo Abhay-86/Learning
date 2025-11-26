@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Exists, OuterRef
 import base64
 
 from features.permission import ReferlyPermission
@@ -938,7 +938,9 @@ class JobListView(APIView):
         responses={200: JobListSerializer(many=True)}
     )
     def get(self, request):
-        jobs = Job.objects.filter(is_active=True).select_related('company')
+        # annotate whether company's HR contacts exist to avoid N+1 queries in serializer
+        hr_exists_qs = HRContact.objects.filter(company=OuterRef('company_id'), is_active=True)
+        jobs = Job.objects.filter(is_active=True).select_related('company').annotate(has_hr=Exists(hr_exists_qs))
         
         # Search functionality
         search = request.query_params.get('search', None)
@@ -1032,7 +1034,8 @@ class JobSearchView(APIView):
         responses={200: JobListSerializer(many=True)}
     )
     def get(self, request):
-        jobs = Job.objects.filter(is_active=True).select_related('company')
+        hr_exists_qs = HRContact.objects.filter(company=OuterRef('company_id'), is_active=True)
+        jobs = Job.objects.filter(is_active=True).select_related('company').annotate(has_hr=Exists(hr_exists_qs))
         
         query = request.query_params.get('query', None)
         if query:
@@ -1060,7 +1063,8 @@ class JobsByCompanyView(APIView):
     @extend_schema(responses={200: JobListSerializer(many=True)})
     def get(self, request, company_id):
         company = get_object_or_404(Company, company_id=company_id, is_active=True)
-        jobs = Job.objects.filter(company=company, is_active=True)
+        hr_exists_qs = HRContact.objects.filter(company=OuterRef('company_id'), is_active=True)
+        jobs = Job.objects.filter(company=company, is_active=True).select_related('company').annotate(has_hr=Exists(hr_exists_qs))
         serializer = JobListSerializer(jobs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
