@@ -105,7 +105,7 @@ class Company(models.Model):
     company_id = models.CharField(max_length=50, unique=True)  # Your custom ID like "COMP001", "COMP002"
     
     # Basic company info
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)  # Company name must be unique
     website = models.URLField(blank=True)  # company website
     about_us = models.TextField(blank=True)  # Company description/about section
     

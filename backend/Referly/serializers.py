@@ -213,18 +213,22 @@ class HRContactSerializer(serializers.ModelSerializer):
 
 class HRContactCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating HR contacts"""
-    company_id = serializers.CharField(write_only=True)
+    company_name = serializers.CharField(write_only=True)
     
     class Meta:
         model = HRContact
-        fields = ['company_id', 'first_name', 'last_name', 'email']
+        fields = ['company_name', 'first_name', 'last_name', 'email']
     
-    def validate_company_id(self, value):
+    def validate_company_name(self, value):
+        """Validate and retrieve company by name (case-insensitive)"""
         try:
-            company = Company.objects.get(company_id=value, is_active=True)
+            company = Company.objects.get(name__iexact=value.strip(), is_active=True)
             return company
         except Company.DoesNotExist:
-            raise serializers.ValidationError("Company with this ID does not exist.")
+            raise serializers.ValidationError(f"Company doesn't exist.")
+        except Company.MultipleObjectsReturned:
+            # This should not happen if name is unique, but handle it gracefully
+            raise serializers.ValidationError(f"Multiple companies found with name '{value}'. Contact admin.")
     
     def validate_email(self, value):
         if HRContact.objects.filter(email=value, is_active=True).exists():
@@ -232,7 +236,7 @@ class HRContactCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        company = validated_data.pop('company_id')
+        company = validated_data.pop('company_name')
         validated_data['company'] = company
         return super().create(validated_data)
 
