@@ -9,7 +9,7 @@ from django.db.models import Q, Count
 import base64
 
 from features.permission import ReferlyPermission
-from .models import Template, Resume, UserQuota, Company, HRContact
+from .models import Template, Resume, UserQuota, Company, HRContact, Job
 from .serializers import (
     TemplateSerializer, TemplateCreateSerializer, TemplateUpdateSerializer,
     ResumeSerializer, ResumeUploadSerializer, UserQuotaSerializer,
@@ -19,6 +19,7 @@ from .serializers import (
     HRContactListSerializer, BulkUploadResponseSerializer,
     CompanyStatsSerializer, HRContactStatsSerializer,
     CompanyBulkUploadSerializer, HRContactBulkUploadSerializer,
+    JobSerializer, JobCreateSerializer, JobUpdateSerializer, JobListSerializer,
 )
 from .utils import FolderStructureManager
 
@@ -920,3 +921,146 @@ class HRContactBulkUploadView(APIView):
                 'success': False,
                 'error': f'Failed to process Excel file: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ==================== JOB MANAGEMENT VIEWS ====================
+
+class JobListView(APIView):
+    """List all jobs with pagination and search"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='search', type=str, description='Search in job title or company'),
+            OpenApiParameter(name='title', type=str, description='Filter by job title'),
+            OpenApiParameter(name='company_name', type=str, description='Filter by company name'),
+        ],
+        responses={200: JobListSerializer(many=True)}
+    )
+    def get(self, request):
+        jobs = Job.objects.filter(is_active=True).select_related('company')
+        
+        # Search functionality
+        search = request.query_params.get('search', None)
+        if search:
+            jobs = jobs.filter(
+                Q(title__icontains=search) |
+                Q(company__name__icontains=search)
+            )
+        
+        # Filter by job title
+        title = request.query_params.get('title', None)
+        if title:
+            jobs = jobs.filter(title=title)
+        
+        # Filter by company name
+        company_name = request.query_params.get('company_name', None)
+        if company_name:
+            jobs = jobs.filter(company__name__icontains=company_name)
+        
+        serializer = JobListSerializer(jobs, many=True)
+        return Response({
+            'results': serializer.data,
+            'count': jobs.count()
+        }, status=status.HTTP_200_OK)
+
+
+class JobCreateView(APIView):
+    """Create a new job"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(request=JobCreateSerializer, responses={201: JobSerializer})
+    def post(self, request):
+        serializer = JobCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            job = serializer.save()
+            response_serializer = JobSerializer(job)
+            return Response(
+                {"message": "Job created successfully!", "data": response_serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class JobDetailView(APIView):
+    """Get, update, or delete a specific job"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    def get_object(self, job_id):
+        return get_object_or_404(Job, id=job_id, is_active=True)
+    
+    @extend_schema(responses={200: JobSerializer})
+    def get(self, request, job_id):
+        job = self.get_object(job_id)
+        serializer = JobSerializer(job)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @extend_schema(request=JobUpdateSerializer, responses={200: JobSerializer})
+    def put(self, request, job_id):
+        job = self.get_object(job_id)
+        serializer = JobUpdateSerializer(job, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response_serializer = JobSerializer(job)
+            return Response(
+                {"message": "Job updated successfully!", "data": response_serializer.data},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @extend_schema(responses={204: None})
+    def delete(self, request, job_id):
+        job = self.get_object(job_id)
+        job.is_active = False  # Soft delete
+        job.save()
+        return Response(
+            {"message": "Job deleted successfully!"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+class JobSearchView(APIView):
+    """Advanced job search"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='query', type=str, description='General search query'),
+            OpenApiParameter(name='title', type=str, description='Filter by job title'),
+            OpenApiParameter(name='company_name', type=str, description='Filter by company name'),
+        ],
+        responses={200: JobListSerializer(many=True)}
+    )
+    def get(self, request):
+        jobs = Job.objects.filter(is_active=True).select_related('company')
+        
+        query = request.query_params.get('query', None)
+        if query:
+            jobs = jobs.filter(
+                Q(title__icontains=query) |
+                Q(company__name__icontains=query)
+            )
+        
+        title = request.query_params.get('title', None)
+        if title:
+            jobs = jobs.filter(title=title)
+        
+        company_name = request.query_params.get('company_name', None)
+        if company_name:
+            jobs = jobs.filter(company__name__icontains=company_name)
+        
+        serializer = JobListSerializer(jobs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class JobsByCompanyView(APIView):
+    """Get all jobs for a specific company"""
+    permission_classes = [IsAuthenticated, ReferlyPermission]
+    
+    @extend_schema(responses={200: JobListSerializer(many=True)})
+    def get(self, request, company_id):
+        company = get_object_or_404(Company, company_id=company_id, is_active=True)
+        jobs = Job.objects.filter(company=company, is_active=True)
+        serializer = JobListSerializer(jobs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Template, Resume, UserQuota
+from .models import Template, Resume, UserQuota, Company, HRContact, Job
 
 # Register your models here.
 
@@ -28,3 +28,48 @@ class UserQuotaAdmin(admin.ModelAdmin):
     list_filter = ['max_templates', 'max_resumes', 'created_at']
     search_fields = ['user__username']
     readonly_fields = ['current_templates', 'current_resumes', 'created_at']
+
+
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display = ['company_id', 'name', 'industry', 'location', 'is_active', 'created_at']
+    list_filter = ['is_active', 'industry', 'created_at']
+    search_fields = ['company_id', 'name', 'industry', 'location']
+    ordering = ['company_id']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(HRContact)
+class HRContactAdmin(admin.ModelAdmin):
+    list_display = ['full_name', 'email', 'company', 'email_verified', 'linkedin_verified', 'is_active', 'created_at']
+    list_filter = ['is_active', 'email_verified', 'linkedin_verified', 'company', 'created_at']
+    search_fields = ['first_name', 'last_name', 'email', 'company__name']
+    ordering = ['company', 'first_name', 'last_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(Job)
+class JobAdmin(admin.ModelAdmin):
+    list_display = ['title', 'company', 'location', 'job_type', 'salary_min', 'salary_max', 'is_active', 'posted_date']
+    list_filter = ['is_active', 'job_type', 'industry', 'company', 'posted_date']
+    search_fields = ['title', 'description', 'company__name', 'location', 'industry']
+    ordering = ['-posted_date']
+    readonly_fields = ['posted_date', 'created_at', 'updated_at']
+    fieldsets = (
+        ('Job Information', {
+            'fields': ('title', 'company', 'description', 'job_type')
+        }),
+        ('Location & Industry', {
+            'fields': ('location', 'industry')
+        }),
+        ('Compensation', {
+            'fields': ('salary_min', 'salary_max')
+        }),
+        ('Requirements', {
+            'fields': ('requirements',)
+        }),
+        ('Status & Dates', {
+            'fields': ('is_active', 'posted_date', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

@@ -51,4 +51,11 @@ urlpatterns = [
     
     # User Quota Endpoint
     path('quota/', views.UserQuotaView.as_view(), name='user_quota'),
+    
+    # Job Management Endpoints
+    path('jobs/', views.JobListView.as_view(), name='job_list'),
+    path('jobs/create/', views.JobCreateView.as_view(), name='job_create'),
+    path('jobs/search/', views.JobSearchView.as_view(), name='job_search'),
+    path('jobs/<int:job_id>/', views.JobDetailView.as_view(), name='job_detail'),
+    path('jobs/by-company/<str:company_id>/', views.JobsByCompanyView.as_view(), name='jobs_by_company'),
 ]
