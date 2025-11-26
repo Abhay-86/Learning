@@ -387,3 +387,200 @@ class VerifyOTPEmailView(APIView):
             data = serializer.validated_data
             return Response(data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ============================================
+# Gmail OAuth Views
+# ============================================
+
+from .gmail_oauth import GmailOAuthService
+from django.utils import timezone
+from django.conf import settings
+
+
+class GmailAuthURLView(APIView):
+    """
+    Generate Gmail OAuth authorization URL
+    
+    GET /api/accounts/gmail/auth-url/
+    
+    Returns:
+        {
+            "success": true,
+            "auth_url": "https://accounts.google.com/o/oauth2/v2/auth?..."
+        }
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        responses={200: dict},
+        description="Generate Gmail OAuth URL for user to grant email sending permission"
+    )
+    def get(self, request):
+        user = request.user
+        redirect_uri = f"{settings.BACKEND_URL}/api/accounts/gmail/callback/"
+        
+        auth_url = GmailOAuthService.generate_auth_url(
+            user_id=user.id,
+            redirect_uri=redirect_uri
+        )
+        
+        return Response({
+            "success": True,
+            "auth_url": auth_url,
+            "message": "Redirect user to this URL to grant Gmail permissions"
+        }, status=status.HTTP_200_OK)
+
+
+class GmailCallbackView(APIView):
+    """
+    Handle Gmail OAuth callback and save refresh token
+    
+    GET /api/accounts/gmail/callback/?code=XXX&state=user_id
+    
+    This endpoint is called by Google after user grants permission
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
+    @extend_schema(
+        responses={200: dict},
+        description="OAuth callback endpoint - called by Google"
+    )
+    def get(self, request):
+        code = request.query_params.get("code")
+        user_id = request.query_params.get("state")
+        
+        if not code or not user_id:
+            return Response(
+                {"error": "Missing code or state parameter"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Get user
+            user = User.objects.get(id=user_id)
+            custom_user = user.custom_user
+            
+            # Exchange code for tokens
+            redirect_uri = f"{settings.BACKEND_URL}/api/accounts/gmail/callback/"
+            token_data = GmailOAuthService.exchange_code_for_token(
+                code=code,
+                redirect_uri=redirect_uri
+            )
+            
+            refresh_token = token_data.get("refresh_token")
+            
+            if not refresh_token:
+                return Response(
+                    {
+                        "error": "No refresh token returned. Please revoke access in Google Account settings and try again.",
+                        "help_url": "https://myaccount.google.com/permissions"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Save refresh token
+            custom_user.gmail_refresh_token = refresh_token
+            custom_user.gmail_permission_granted_at = timezone.now()
+            custom_user.save()
+            
+            # Redirect to frontend success page
+            frontend_url = f"{settings.FRONTEND_URL}/settings/gmail-success"
+            return Response({
+                "success": True,
+                "message": "Gmail permission granted successfully!",
+                "redirect_url": frontend_url
+            }, status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to process OAuth callback: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class GmailAcceptPrivacyView(APIView):
+    """
+    Accept Gmail privacy policy
+    
+    POST /api/accounts/gmail/accept-privacy/
+    
+    User must accept privacy policy before connecting Gmail
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        responses={200: dict},
+        description="Accept Gmail privacy policy"
+    )
+    def post(self, request):
+        """Mark that user has accepted Gmail privacy policy"""
+        user = request.user
+        custom_user = user.custom_user
+        
+        custom_user.gmail_privacy_accepted = True
+        custom_user.save()
+        
+        return Response({
+            "success": True,
+            "message": "Privacy policy accepted",
+            "privacy_accepted": True
+        }, status=status.HTTP_200_OK)
+
+
+class GmailPermissionStatusView(APIView):
+    """
+    Check if user has granted Gmail permission
+    
+    GET /api/accounts/gmail/status/
+    
+    Returns:
+        {
+            "success": true,
+            "has_permission": true,
+            "granted_at": "2025-11-25T10:30:00Z",
+            "user_email": "user@gmail.com"
+        }
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        responses={200: dict},
+        description="Check Gmail permission status for authenticated user"
+    )
+    def get(self, request):
+        user = request.user
+        custom_user = user.custom_user
+        
+        return Response({
+            "success": True,
+            "has_permission": custom_user.has_gmail_permission(),
+            "privacy_accepted": custom_user.gmail_privacy_accepted,
+            "granted_at": custom_user.gmail_permission_granted_at,
+            "user_email": user.email
+        }, status=status.HTTP_200_OK)
+    
+    @extend_schema(
+        responses={200: dict},
+        description="Revoke Gmail permission"
+    )
+    def delete(self, request):
+        """Revoke Gmail permission"""
+        user = request.user
+        custom_user = user.custom_user
+        
+        custom_user.gmail_refresh_token = None
+        custom_user.gmail_permission_granted_at = None
+        custom_user.gmail_privacy_accepted = False  # Reset privacy acceptance
+        custom_user.save()
+        
+        return Response({
+            "success": True,
+            "message": "Gmail permission revoked successfully"
+        }, status=status.HTTP_200_OK)

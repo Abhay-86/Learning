@@ -17,11 +17,18 @@ class CustomUser(models.Model):
     is_verified = models.BooleanField(default=False)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='USER')
     is_verified = models.BooleanField(default=False)
-
     
+    # Gmail OAuth Integration
+    gmail_refresh_token = models.TextField(null=True, blank=True)
+    gmail_permission_granted_at = models.DateTimeField(null=True, blank=True)
+    gmail_privacy_accepted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.username
+    
+    def has_gmail_permission(self):
+        """Check if user has granted Gmail send permission"""
+        return bool(self.gmail_refresh_token)
 
 class EmailOTP(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_otps')
