@@ -33,7 +33,6 @@ urlpatterns = [
     # HR Contact Management Endpoints  
     path('hr-contacts/', views.HRContactListView.as_view(), name='hr_contact_list'),
     path('hr-contacts/create/', views.HRContactCreateView.as_view(), name='hr_contact_create'),
-    path('hr-contacts/search/', views.HRContactSearchView.as_view(), name='hr_contact_search'),
     path('hr-contacts/<int:hr_id>/', views.HRContactDetailView.as_view(), name='hr_contact_detail'),
     path('hr-contacts/by-company/<str:company_id>/', views.HRContactByCompanyView.as_view(), name='hr_by_company'),
     
@@ -51,4 +50,11 @@ urlpatterns = [
     
     # User Quota Endpoint
     path('quota/', views.UserQuotaView.as_view(), name='user_quota'),
+    
+    # Job Management Endpoints
+    path('jobs/', views.JobListView.as_view(), name='job_list'),
+    path('jobs/create/', views.JobCreateView.as_view(), name='job_create'),
+    path('jobs/search/', views.JobSearchView.as_view(), name='job_search'),
+    path('jobs/<int:job_id>/', views.JobDetailView.as_view(), name='job_detail'),
+    path('jobs/by-company/<str:company_id>/', views.JobsByCompanyView.as_view(), name='jobs_by_company'),
 ]

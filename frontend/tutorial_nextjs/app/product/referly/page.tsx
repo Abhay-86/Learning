@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/context/AuthContext"
 import { Quote } from "lucide-react"
+import { JobBoard } from "./components/job-board"
 
 // File content loading states
 interface FileContentState {
@@ -324,79 +325,8 @@ export default function EmailServicePage() {
                         </>
                     )
                 ) : (
-                    /* Welcome Screen */
-                    <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 p-8">
-                        <div className="max-w-2xl w-full space-y-8">
-                            {/* Header with Avatar */}
-                            <div className="flex flex-col items-center text-center space-y-4">
-                                <Avatar className="h-24 w-24 border-4 border-white dark:border-gray-800 shadow-xl">
-                                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'User'}`} />
-                                    <AvatarFallback className="text-2xl">{user?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                        Hello, {user?.first_name || user?.username || 'Creator'}!
-                                    </h2>
-                                    <p className="text-muted-foreground mt-2">Ready to create something amazing today?</p>
-                                </div>
-                            </div>
-
-                            {/* Daily Motivation - Full Width & Full Height */}
-                            <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center">
-                                <Card className="border-none shadow-none bg-transparent h-full flex flex-col justify-center">
-                                    <CardContent className="pt-8 pb-8 px-0 text-center">
-                                        <div className="relative inline-block">
-                                            <Quote className="h-12 w-12 text-blue-500/20 absolute -top-8 -left-12 transform -scale-x-100" />
-
-                                            <div className="space-y-8 max-w-3xl mx-auto">
-                                                <h3 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                                                    "Volume always wins. Luck doesn't."
-                                                </h3>
-
-                                                <div className="space-y-6 text-lg text-gray-600 dark:text-gray-400 leading-relaxed font-medium">
-                                                    <p>
-                                                        Throw 10 balls → none may go in.<br />
-                                                        Throw 100 → at least one will.<br />
-                                                        <span className="text-blue-600 dark:text-blue-400 font-semibold">That's not luck. That's volume.</span>
-                                                    </p>
-
-                                                    <p className="italic pl-4 border-l-4 border-blue-500/30">
-                                                        Send that email. Make that call. Do that follow-up.<br />
-                                                        Knock on that next door. Push again. Then push some more.
-                                                    </p>
-
-                                                    <p>
-                                                        Because success isn't about one perfect move,<br />
-                                                        it's about showing up a hundred times more than anyone else.
-                                                    </p>
-
-                                                    <p>
-                                                        Luck fades. Volume compounds.<br />
-                                                        Keep the volume high and watch results chase you.
-                                                    </p>
-                                                </div>
-
-                                                <div className="pt-8 border-t border-gray-200 dark:border-gray-800 w-1/2 mx-auto">
-                                                    <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                                        At the end volume always beats luck. Always.
-                                                    </p>
-                                                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mt-4">
-                                                        — Alex Hormozi
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <Quote className="h-12 w-12 text-blue-500/20 absolute -bottom-8 -right-12" />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-
-                            <div className="text-center text-sm text-muted-foreground">
-                                <p>Select a template from the sidebar to start working</p>
-                            </div>
-                        </div>
-                    </div>
+                    /* Job Board */
+                    <JobBoard />
                 )}
             </div>
             {/* Toast notifications */}

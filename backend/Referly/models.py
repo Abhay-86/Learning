@@ -104,19 +104,16 @@ class Company(models.Model):
     # Your custom company ID (unique)
     company_id = models.CharField(max_length=50, unique=True)  # Your custom ID like "COMP001", "COMP002"
     
-    # LinkedIn info (optional)
-    linkedin_company_id = models.CharField(max_length=100, blank=True)  # Not unique, just reference
-    
     # Basic company info
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)  # Company name must be unique
     website = models.URLField(blank=True)  # company website
-    linkedin_url = models.URLField(blank=True)
+    about_us = models.TextField(blank=True)  # Company description/about section
     
     # Additional company details
-    industry = models.CharField(max_length=100, blank=True)
-    location = models.CharField(max_length=255, blank=True)
-    employee_count_range = models.CharField(max_length=50, blank=True)
-    about_us = models.TextField(blank=True)  # Company description/about section
+    headquarters = models.CharField(max_length=255, blank=True)  # City or location
+    founded_year = models.PositiveIntegerField(null=True, blank=True)  # Year founded
+    company_size = models.CharField(max_length=100, blank=True)  # e.g., "1-50", "51-200", "201-500", etc.
+    company_url = models.URLField(blank=True)  # Main company URL (if different from website)
     
     # Status fields
     is_active = models.BooleanField(default=True)
@@ -141,16 +138,14 @@ class HRContact(models.Model):
     # Basic HR Contact Info
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)  # Unique emails globally
-    phone = models.CharField(max_length=20, blank=True)
-    linkedin_url = models.URLField(blank=True)
+    email = models.EmailField(unique=True)  
     
-    # Verification & Status
+    # Verification flags
     email_verified = models.BooleanField(default=False)
     linkedin_verified = models.BooleanField(default=False)
+
+    # Status & Metadata
     is_active = models.BooleanField(default=True)
-    
-    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -164,3 +159,45 @@ class HRContact(models.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+
+class Job(models.Model):
+    """Job model for storing job listings"""
+    JOB_TYPE_CHOICES = [
+        ('software-developer', 'Software Developer'),
+        ('web-developer', 'Web Developer'),
+        ('python-developer', 'Python Developer'),
+        ('frontend-developer', 'Frontend Developer'),
+        ('backend-developer', 'Backend Developer'),
+        ('full-stack-developer', 'Full Stack Developer'),
+        ('data-scientist', 'Data Scientist'),
+        ('machine-learning-engineer', 'Machine Learning Engineer'),
+        ('mobile-app-developer', 'Mobile App Developer'),
+        ('android-developer', 'Android Developer'),
+        ('ios-developer', 'iOS Developer'),
+        ('devops-engineer', 'DevOps Engineer'),
+        ('cloud-engineer', 'Cloud Engineer'),
+        ('data-engineer', 'Data Engineer'),
+        ('ai-engineer', 'AI Engineer'),
+    ]
+    
+    # Link to company
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='jobs')
+    
+    # Basic job info
+    title = models.CharField(max_length=255, choices=JOB_TYPE_CHOICES)
+    job_type = models.CharField(max_length=50, choices=JOB_TYPE_CHOICES, default='software-developer')
+    
+    # Status & Dates
+    is_active = models.BooleanField(default=True)
+    posted_date = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'referly_job'
+        ordering = ['-posted_date']
+        unique_together = ['company', 'job_type']  # One job type per company
+    
+    def __str__(self):
+        return f"{self.title} - {self.company.name}"

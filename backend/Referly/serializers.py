@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from .models import Template, Resume, UserQuota, Company, HRContact
+from .models import Template, Resume, UserQuota, Company, HRContact, Job
 from django.contrib.auth.models import User
 import base64
+import hashlib
 
 
 class TemplateSerializer(serializers.ModelSerializer):
@@ -147,37 +148,53 @@ class ResumePreviewSerializer(serializers.ModelSerializer):
 class CompanySerializer(serializers.ModelSerializer):
     """Serializer for Company model"""
     hr_contacts_count = serializers.SerializerMethodField()
+    jobs_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Company
-        fields = ['id', 'company_id', 'name', 'website', 'linkedin_url', 'linkedin_company_id',
-                 'industry', 'location', 'employee_count_range', 'about_us', 
-                 'hr_contacts_count', 'is_active', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'hr_contacts_count']
+        fields = ['id', 'company_id', 'name', 'website', 'about_us', 'headquarters', 
+                 'founded_year', 'company_size', 'company_url', 'hr_contacts_count', 
+                 'jobs_count', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'hr_contacts_count', 'jobs_count']
     
     def get_hr_contacts_count(self, obj):
         return obj.hr_contacts.filter(is_active=True).count()
+    
+    def get_jobs_count(self, obj):
+        return obj.jobs.filter(is_active=True).count()
 
 
 class CompanyCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating companies"""
     class Meta:
         model = Company
-        fields = ['company_id', 'name', 'website', 'linkedin_url', 'linkedin_company_id',
-                 'industry', 'location', 'employee_count_range', 'about_us']
-    
-    def validate_company_id(self, value):
-        if Company.objects.filter(company_id=value).exists():
-            raise serializers.ValidationError("Company with this ID already exists.")
-        return value
+        fields = ['name', 'website', 'company_url', 'company_size', 'headquarters', 'about_us']
+
+    def validate_name(self, value):
+        if Company.objects.filter(name__iexact=value.strip()).exists():
+            raise serializers.ValidationError("Company with this name already exists.")
+        return value.strip()
+
+    def create(self, validated_data):
+        name = validated_data.get('name', '').strip()
+        base_hash = hashlib.sha1(name.encode('utf-8')).hexdigest()[:10]
+        candidate_id = base_hash.upper()
+        # Ensure uniqueness by appending a counter if needed
+        counter = 1
+        while Company.objects.filter(company_id=candidate_id).exists():
+            candidate_id = f"{base_hash.upper()}_{counter}"
+            counter += 1
+
+        validated_data['company_id'] = candidate_id
+        return super().create(validated_data)
 
 
 class CompanyUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating companies"""
     class Meta:
         model = Company
-        fields = ['name', 'website', 'linkedin_url', 'linkedin_company_id',
-                 'industry', 'location', 'employee_count_range', 'about_us', 'is_active']
+        fields = ['name', 'website', 'about_us', 'headquarters', 'founded_year', 
+                 'company_size', 'company_url', 'is_active']
 
 
 # HR Contact Serializers
@@ -190,25 +207,28 @@ class HRContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = HRContact
         fields = ['id', 'company', 'company_id', 'company_name', 'first_name', 'last_name', 'full_name',
-                 'email', 'phone', 'linkedin_url', 'email_verified', 'linkedin_verified',
-                 'is_active', 'created_at', 'updated_at']
+                 'email', 'email_verified', 'linkedin_verified', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 'full_name', 'company_name', 'company_id']
 
 
 class HRContactCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating HR contacts"""
-    company_id = serializers.CharField(write_only=True)
+    company_name = serializers.CharField(write_only=True)
     
     class Meta:
         model = HRContact
-        fields = ['company_id', 'first_name', 'last_name', 'email', 'phone', 'linkedin_url']
+        fields = ['company_name', 'first_name', 'last_name', 'email']
     
-    def validate_company_id(self, value):
+    def validate_company_name(self, value):
+        """Validate and retrieve company by name (case-insensitive)"""
         try:
-            company = Company.objects.get(company_id=value, is_active=True)
+            company = Company.objects.get(name__iexact=value.strip(), is_active=True)
             return company
         except Company.DoesNotExist:
-            raise serializers.ValidationError("Company with this ID does not exist.")
+            raise serializers.ValidationError(f"Company doesn't exist.")
+        except Company.MultipleObjectsReturned:
+            # This should not happen if name is unique, but handle it gracefully
+            raise serializers.ValidationError(f"Multiple companies found with name '{value}'. Contact admin.")
     
     def validate_email(self, value):
         if HRContact.objects.filter(email=value, is_active=True).exists():
@@ -216,7 +236,7 @@ class HRContactCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        company = validated_data.pop('company_id')
+        company = validated_data.pop('company_name')
         validated_data['company'] = company
         return super().create(validated_data)
 
@@ -225,8 +245,7 @@ class HRContactUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating HR contacts"""
     class Meta:
         model = HRContact
-        fields = ['first_name', 'last_name', 'email', 'phone', 'linkedin_url', 
-                 'email_verified', 'linkedin_verified', 'is_active']
+        fields = ['first_name', 'last_name', 'email', 'is_active']
     
     def validate_email(self, value):
         # Check if email exists for other HR contacts
@@ -238,15 +257,23 @@ class HRContactUpdateSerializer(serializers.ModelSerializer):
 
 
 class HRContactListSerializer(serializers.ModelSerializer):
-    """Simplified serializer for HR contact lists"""
     company_name = serializers.CharField(source='company.name', read_only=True)
     company_id = serializers.CharField(source='company.company_id', read_only=True)
     full_name = serializers.ReadOnlyField()
-    
+
     class Meta:
         model = HRContact
-        fields = ['id', 'company_id', 'company_name', 'full_name', 'email', 'phone', 
-                 'email_verified', 'linkedin_verified', 'created_at']
+        fields = [
+            'id',
+            'company_id',
+            'company_name',
+            'full_name',
+            'email',
+            'email_verified',
+            'linkedin_verified',
+            'created_at'
+        ]
+
 
 
 # Bulk Upload Serializers
@@ -293,3 +320,79 @@ class HRContactStatsSerializer(serializers.Serializer):
     verified_emails = serializers.IntegerField()
     verified_linkedin = serializers.IntegerField()
     contacts_by_company = serializers.DictField()
+
+
+# Job Serializers
+class JobSerializer(serializers.ModelSerializer):
+    """Serializer for Job model"""
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    company_id = serializers.CharField(source='company.company_id', read_only=True)
+    title_display = serializers.CharField(source='get_title_display', read_only=True)
+    job_type_display = serializers.CharField(source='get_job_type_display', read_only=True)
+    
+    # Expose whether this job has at least one active HR contact for its company
+    hasHR = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Job
+        fields = ['id', 'title', 'title_display', 'job_type', 'job_type_display', 'company', 
+                 'company_id', 'company_name', 'posted_date', 'created_at', 'updated_at', 'is_active', 'hasHR']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'posted_date', 'company_name', 
+                           'company_id', 'title_display', 'job_type_display', 'hasHR']
+
+    def get_hasHR(self, obj):
+        # If view annotated the queryset with `has_hr` (Exists subquery), prefer that value
+        if hasattr(obj, 'has_hr'):
+            return bool(getattr(obj, 'has_hr'))
+
+        # Fallback: perform a fast existence check
+        return obj.company.hr_contacts.filter(is_active=True).exists()
+
+
+class JobCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating jobs"""
+    company_id = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = Job
+        fields = ['company_id', 'title', 'job_type']
+    
+    def validate_company_id(self, value):
+        try:
+            company = Company.objects.get(company_id=value, is_active=True)
+            return company
+        except Company.DoesNotExist:
+            raise serializers.ValidationError("Company with this ID does not exist.")
+    
+    def create(self, validated_data):
+        company = validated_data.pop('company_id')
+        validated_data['company'] = company
+        return super().create(validated_data)
+
+
+class JobUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating jobs"""
+    class Meta:
+        model = Job
+        fields = ['title', 'job_type', 'is_active']
+
+
+class JobListSerializer(serializers.ModelSerializer):
+    """Simplified serializer for job lists"""
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    company_id = serializers.CharField(source='company.company_id', read_only=True)
+    title_display = serializers.CharField(source='get_title_display', read_only=True)
+    job_type_display = serializers.CharField(source='get_job_type_display', read_only=True)
+    
+    # Expose whether this job has at least one active HR contact for its company
+    hasHR = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Job
+        fields = ['id', 'title', 'title_display', 'job_type', 'job_type_display', 
+                 'company_id', 'company_name', 'posted_date', 'hasHR']
+
+    def get_hasHR(self, obj):
+        if hasattr(obj, 'has_hr'):
+            return bool(getattr(obj, 'has_hr'))
+        return obj.company.hr_contacts.filter(is_active=True).exists()
