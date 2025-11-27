@@ -42,11 +42,19 @@ class CompanyAdmin(admin.ModelAdmin):
 
 @admin.register(HRContact)
 class HRContactAdmin(admin.ModelAdmin):
-    list_display = ['full_name', 'email', 'company', 'email_verified', 'linkedin_verified', 'is_active', 'created_at']
+    list_display = [
+        'full_name', 'email', 'company',
+        'email_verified', 'linkedin_verified',
+        'is_active', 'created_at'
+    ]
     list_filter = ['is_active', 'email_verified', 'linkedin_verified', 'company', 'created_at']
     search_fields = ['first_name', 'last_name', 'email', 'company__name']
     ordering = ['company', 'first_name', 'last_name']
     readonly_fields = ['created_at', 'updated_at']
+
+    def full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+
 
 
 @admin.register(Job)

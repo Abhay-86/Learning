@@ -257,14 +257,23 @@ class HRContactUpdateSerializer(serializers.ModelSerializer):
 
 
 class HRContactListSerializer(serializers.ModelSerializer):
-    """Simplified serializer for HR contact lists"""
     company_name = serializers.CharField(source='company.name', read_only=True)
     company_id = serializers.CharField(source='company.company_id', read_only=True)
     full_name = serializers.ReadOnlyField()
-    
+
     class Meta:
         model = HRContact
-        fields = ['id', 'company_id', 'company_name', 'full_name', 'email', 'email_verified', 'linkedin_verified', 'created_at']
+        fields = [
+            'id',
+            'company_id',
+            'company_name',
+            'full_name',
+            'email',
+            'email_verified',
+            'linkedin_verified',
+            'created_at'
+        ]
+
 
 
 # Bulk Upload Serializers
