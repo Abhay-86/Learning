@@ -33,6 +33,7 @@ media/
 .env
 
 /Temp
+/scraper/Scraper_service/Temp
 
 /Credentials
 
