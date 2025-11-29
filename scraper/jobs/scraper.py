@@ -26,7 +26,7 @@ job_keywords = [
 
 
 BASE_URL = "https://www.linkedin.com/jobs/search/"
-page_number = 5
+page_number = 15
 
 def get_jobs():
     """Scrape LinkedIn jobs based on predefined keywords"""
