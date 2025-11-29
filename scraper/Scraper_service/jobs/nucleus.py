@@ -76,7 +76,13 @@ def add_to_nucleus(name: str):
              VALUES (%s, %s, %s, %s, %s, %s) 
              RETURNING *;"""
     result = DB.execute(sql, (normalized_name, code, name, '{}', updated_at(), updated_at()))
-    return result['nucleus_uid']
+    nucleus_uid = result['nucleus_uid']
+    sql = """INSERT INTO company (name, nucleus_uid, created_at, updated_at) 
+             VALUES (%s, %s, %s, %s) 
+             RETURNING *;"""
+    DB.execute(sql, (name, nucleus_uid, updated_at(), updated_at()))
+    print("✓ Inserted company.", result)
+    return nucleus_uid
 
 def nucleus(name: str):
     return check(name)

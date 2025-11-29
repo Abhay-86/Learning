@@ -1,5 +1,5 @@
 from Scraper_service.core.db import Database
-from Scraper_service.jobs.nucleus import check
+from Scraper_service.jobs.nucleus import check, nucleus
 from Scraper_service.utils.timestamps import updated_at
 from Scraper_service.sheet.google_sheet import get_sheet_by_number
 from Scraper_service.jobs.jobs import insert_main_job_record
@@ -60,10 +60,9 @@ def temp_job_main():
     # Task 1: Insert to nucleus
     for i, record in enumerate(records, 1):
         print(f"[{i}/{len(records)}] Processing nucleus for record")
-        nucleus_uid = check(record.get('Company', '').strip())
+        nucleus_uid = nucleus(record.get('Company', '').strip())
         
         if nucleus_uid:
-            nucleus_uid = nucleus_uid
             print(f"✓ Exact match found: {record.get('Company', '').strip()}")
             print(f"Updating job record with nucleus_uid: {nucleus_uid}")
             insert_main_job_record(record, nucleus_uid)

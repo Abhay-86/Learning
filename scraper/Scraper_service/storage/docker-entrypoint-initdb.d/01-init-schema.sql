@@ -38,8 +38,27 @@ CREATE TABLE job_scraper (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE company (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    nucleus_uid TEXT NOT NULL REFERENCES nucleus(nucleus_uid) ON DELETE CASCADE,
+    about_us TEXT,
+    website TEXT,
+    headquarters TEXT,
+    founded VARCHAR(50),
+    company_type VARCHAR(255),
+    company_size VARCHAR(255),
+    url TEXT,
+    last_updated TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes for performance
 CREATE INDEX idx_nucleus_name ON nucleus(name);
 CREATE INDEX idx_job_scraper_temp_company ON job_scraper_temp(company);
 CREATE INDEX idx_job_scraper_nucleus_uid ON job_scraper(nucleus_uid);
 CREATE INDEX idx_job_scraper_url ON job_scraper(url);
+CREATE INDEX idx_company_name ON company(name);
+CREATE INDEX idx_company_nucleus_uid ON company(nucleus_uid);
+CREATE INDEX idx_company_website ON company(website);
