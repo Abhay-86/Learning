@@ -25,7 +25,9 @@ def check(name: str):
     exact_results = DB.query(sql)
     
     if exact_results:
-        return exact_results[0]['nucleus_uid']
+        nucleus_uid = exact_results[0]["nucleus_uid"]
+        print("✓ Exact match found in nucleus.", nucleus_uid)
+        return nucleus_uid
     
     # 2. Get first two words for prefix matching
     first_two_words = get_first_two_words(normalized_name)

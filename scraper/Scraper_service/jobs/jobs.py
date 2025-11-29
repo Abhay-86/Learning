@@ -18,12 +18,12 @@ def insert_main_job_record(record, nucleus_uid):
             return False
         
         sql = """
-        INSERT INTO job_scraper_temp (title, company, location, job_type, url, scraped_at)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO job_scraper (nucleus_uid, title, company, location, job_type, url, scraped_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         RETURNING *;
         """
         
-        inserted_row = DB.execute(sql, (title, company, location, job_type, url, created_at))
+        inserted_row = DB.execute(sql, (nucleus_uid, title, company, location, job_type, url, created_at))
         
         if inserted_row:
             print(f"✓ Inserted main job: {title} at {company}")

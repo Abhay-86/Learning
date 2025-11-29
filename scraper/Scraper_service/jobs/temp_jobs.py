@@ -60,19 +60,11 @@ def temp_job_main():
     # Task 1: Insert to nucleus
     for i, record in enumerate(records, 1):
         print(f"[{i}/{len(records)}] Processing nucleus for record")
-        result = check(record.get('Company', '').strip())
+        nucleus_uid = check(record.get('Company', '').strip())
         
-        if result['status'] == 'exact':
-            nucleus_uid = result['data']['nucleus_uid']
+        if nucleus_uid:
+            nucleus_uid = nucleus_uid
             print(f"✓ Exact match found: {record.get('Company', '').strip()}")
+            print(f"Updating job record with nucleus_uid: {nucleus_uid}")
             insert_main_job_record(record, nucleus_uid)
-            
-        elif result['status'] == 'variant':
-            nucleus_uid = result['data']['nucleus_uid']
-            print(f"✓ Variant match found: {record.get('Company', '').strip()}")
-            insert_main_job_record(record, nucleus_uid)
-            
-        elif result['status'] == 'no_match':
-            print(f"ℹ️  No match found, will create new nucleus for: {record.get('Company', '').strip()}")
-            # TODO: Add new company to nucleus
 

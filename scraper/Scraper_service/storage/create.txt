@@ -1,9 +1,10 @@
--- Drop nucleus first (because others depend on it)
+docker exec -i scraper_postgres psql -U abhay -d scraperdb << 'EOF'
+-- Drop existing tables
 DROP TABLE IF EXISTS job_scraper CASCADE;
 DROP TABLE IF EXISTS job_scraper_temp CASCADE;
 DROP TABLE IF EXISTS nucleus CASCADE;
 
--- Create nucleus table (TEXT UID)
+-- Recreate nucleus table using TEXT UID
 CREATE TABLE nucleus (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
@@ -14,7 +15,7 @@ CREATE TABLE nucleus (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create job_scraper_temp table
+-- job_scraper_temp table
 CREATE TABLE job_scraper_temp (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -25,7 +26,7 @@ CREATE TABLE job_scraper_temp (
     scraped_at TIMESTAMPTZ NOT NULL
 );
 
--- Create job_scraper table with TEXT FK + UNIQUE url
+-- job_scraper table with UNIQUE url
 CREATE TABLE job_scraper (
     id SERIAL PRIMARY KEY,
     nucleus_uid TEXT NOT NULL REFERENCES nucleus(nucleus_uid),
@@ -33,13 +34,17 @@ CREATE TABLE job_scraper (
     company TEXT NOT NULL,
     location TEXT,
     job_type TEXT,
-    url TEXT NOT NULL UNIQUE,   -- 🔥 LinkedIn URL unique
+    url TEXT NOT NULL UNIQUE,
     scraped_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes for performance
+-- Indexes
 CREATE INDEX idx_nucleus_name ON nucleus(name);
 CREATE INDEX idx_job_scraper_temp_company ON job_scraper_temp(company);
 CREATE INDEX idx_job_scraper_nucleus_uid ON job_scraper(nucleus_uid);
 CREATE INDEX idx_job_scraper_url ON job_scraper(url);
+
+-- Show final tables
+\dt
+EOF
