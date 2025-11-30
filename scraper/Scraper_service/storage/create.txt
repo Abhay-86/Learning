@@ -1,10 +1,14 @@
 docker exec -i scraper_postgres psql -U abhay -d scraperdb << 'EOF'
--- Drop existing tables
+-- Drop existing tables (drop dependents first)
 DROP TABLE IF EXISTS job_scraper CASCADE;
 DROP TABLE IF EXISTS job_scraper_temp CASCADE;
+DROP TABLE IF EXISTS company CASCADE;
+DROP TABLE IF EXISTS linked_in_credentials CASCADE;
 DROP TABLE IF EXISTS nucleus CASCADE;
 
--- Recreate nucleus table using TEXT UID
+-- ================================
+-- Create nucleus table
+-- ================================
 CREATE TABLE nucleus (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
@@ -15,7 +19,9 @@ CREATE TABLE nucleus (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- job_scraper_temp table
+-- ================================
+-- Create job_scraper_temp
+-- ================================
 CREATE TABLE job_scraper_temp (
     id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -26,7 +32,9 @@ CREATE TABLE job_scraper_temp (
     scraped_at TIMESTAMPTZ NOT NULL
 );
 
--- job_scraper table with UNIQUE url
+-- ================================
+-- Create job_scraper
+-- ================================
 CREATE TABLE job_scraper (
     id SERIAL PRIMARY KEY,
     nucleus_uid TEXT NOT NULL REFERENCES nucleus(nucleus_uid),
@@ -39,11 +47,54 @@ CREATE TABLE job_scraper (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes
+-- ================================
+-- Create company table
+-- ================================
+CREATE TABLE company (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    nucleus_uid TEXT NOT NULL REFERENCES nucleus(nucleus_uid) ON DELETE CASCADE,
+    about_us TEXT,
+    website TEXT,
+    headquarters TEXT,
+    founded VARCHAR(50),
+    company_type VARCHAR(255),
+    company_size VARCHAR(255),
+    url TEXT,
+    last_updated TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ================================
+-- Create LinkedIn credentials table
+-- ================================
+CREATE TABLE linked_in_credentials (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    is_blocked BOOLEAN DEFAULT FALSE,
+    last_used TIMESTAMPTZ DEFAULT NOW(),
+    usage_count INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ================================
+-- Indexes for performance
+-- ================================
 CREATE INDEX idx_nucleus_name ON nucleus(name);
+
 CREATE INDEX idx_job_scraper_temp_company ON job_scraper_temp(company);
 CREATE INDEX idx_job_scraper_nucleus_uid ON job_scraper(nucleus_uid);
 CREATE INDEX idx_job_scraper_url ON job_scraper(url);
+
+CREATE INDEX idx_company_name ON company(name);
+CREATE INDEX idx_company_nucleus_uid ON company(nucleus_uid);
+CREATE INDEX idx_company_website ON company(website);
+
+CREATE INDEX idx_linkedin_email ON linked_in_credentials(email);
+CREATE INDEX idx_linkedin_is_blocked ON linked_in_credentials(is_blocked);
 
 -- Show final tables
 \dt
