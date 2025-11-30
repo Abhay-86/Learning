@@ -1,11 +1,9 @@
 import re
 from typing import List
 from datetime import datetime
-
-try:
-    from .models import CompanyModel
-except ImportError:
-    from models import CompanyModel
+from .models import CompanyModel
+from Scraper_service.core.db import Database
+DB = Database()
 
 def format_company_name(company_name: str) -> str:
     """
@@ -31,8 +29,8 @@ def format_company_name(company_name: str) -> str:
 
 def build_company_url(company_name: str) -> str:
     """Build complete LinkedIn company URL"""
-    # formatted_name = format_company_name(company_name)
-    return f"https://www.linkedin.com/company/{company_name}/"
+    formatted_name = format_company_name(company_name)
+    return f"https://www.linkedin.com/company/{formatted_name}/"
 
 
 def get_company_names(sheet) -> set:
@@ -46,6 +44,62 @@ def get_company_names(sheet) -> set:
         print(f"Error getting new company names: {e}")
         return set()
 
+def get_company_names_with_empty_url():
+    sql = """
+        SELECT name 
+        FROM company 
+        WHERE url IS NULL OR url = '';
+    """
+    # sql = """
+    #     SELECT c.name
+    #     FROM company c
+    #     JOIN nucleus n ON n.nucleus_uid = c.nucleus_uid
+    #     WHERE (c.url IS NULL OR c.url = '')
+    #     AND n.verified = TRUE;
+    # """
+    rows = DB.query(sql)
+    return [row['name'] for row in rows]
+
+def get_nucleus_id(company_names):
+    sql = """
+        SELECT nucleus_uid 
+        FROM company 
+        WHERE name IN %s;
+    """
+    rows = DB.query(sql, (tuple(company_names),))
+    return [row['nucleus_uid'] for row in rows]
+
+def update_company_table(companies_data):
+    db = Database()
+
+    sql = """
+        UPDATE company
+        SET 
+            about_us = %s,
+            website = %s,
+            headquarters = %s,
+            founded = %s,
+            company_type = %s,
+            company_size = %s,
+            url = %s,
+            last_updated = %s,
+            updated_at = NOW()
+        WHERE name = %s;
+    """
+
+    for company in companies_data:
+        db.execute(sql, (
+            company.about_us,
+            company.website,
+            company.headquarters,
+            company.founded,
+            company.company_type,
+            company.company_size,
+            company.url,
+            company.last_updated,
+            company.Company
+        ))
+
 def validate_companies(companies_data, existing_names):
     """Validate companies data and filter duplicates based on company names"""
     validated = []
@@ -56,7 +110,7 @@ def validate_companies(companies_data, existing_names):
             if company_name in existing_names:
                 print(f"Skipped duplicate company: {company_name}")
                 continue
-                
+            print(f"Validating company: {company_name}")
             model = CompanyModel(
                 Company=company.get('Company'),
                 about_us=company.get('about_us'),
@@ -94,7 +148,7 @@ def upload_to_sheet(sheet, companies):
                 company.founded or "",
                 company.company_type or "",
                 company.company_size or "",
-                str(company.url) if company.url else "",
+                str(company.url) if company.url else None,
                 company.last_updated or ""
             ]
             rows.append(row)
@@ -106,4 +160,45 @@ def upload_to_sheet(sheet, companies):
     except Exception as e:
         print(f"Upload failed: {e}")
         return False
-    
+
+def get_credentials():
+    sql = """
+        SELECT email, password 
+        FROM linked_in_credentials
+        WHERE is_blocked = FALSE
+        ORDER BY last_used ASC, usage_count ASC
+        LIMIT 1;
+    """
+
+    rows = DB.query(sql)
+
+    if not rows:
+        print("❌ No credentials available!")
+        return None
+
+    row = rows[0]
+
+    return {
+        "email": row["email"],
+        "password": row["password"]
+    }
+
+def mark_credential_used(email):
+    sql = """
+        UPDATE linked_in_credentials
+        SET 
+            last_used = NOW(),
+            usage_count = usage_count + 1
+        WHERE email = %s;
+    """
+    DB.execute(sql, (email,))
+
+def mark_credential_blocked(email):
+    sql = """
+        UPDATE linked_in_credentials
+        SET 
+            is_blocked = TRUE,
+            updated_at = NOW()
+        WHERE email = %s;
+    """
+    DB.execute(sql, (email,))

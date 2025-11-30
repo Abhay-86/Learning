@@ -1,6 +1,7 @@
 from linkedin_scraper import Company, actions
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
+from .utils import get_credentials, mark_credential_used, mark_credential_blocked
 import time
 import random
 
@@ -223,8 +224,14 @@ def get_companies(company_names_list: list[str]) -> list[dict]:
         return []
         
     # LinkedIn credentials - these should be passed as parameters in production
-    email = "santlalc27@gmail.com"
-    password = "Sant@123"
+    # email = "santlalc27@gmail.com"
+    # password = "Sant@123"
+
+    # Get credentials from database
+    credentials = get_credentials()
+    email = credentials.get("email")
+    password = credentials.get("password") 
+    mark_credential_used(email)
     
     # Create single persistent session - NO RE-LOGIN throughout entire process
     driver = _create_persistent_session(email, password)

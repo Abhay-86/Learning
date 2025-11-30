@@ -1,0 +1,22 @@
+# Database
+psycopg2-binary
+
+# Environment
+python-dotenv
+
+# Google Sheets integration
+gspread==6.0.0
+google-auth==2.36.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0
+
+# Web scraping and automation (for scrap_companies and scrap_jobs)
+selenium==4.38.0
+linkedin_scraper==2.11.5
+
+# Data validation and modeling
+pydantic==2.7.0
+pydantic[email]
+
+# HTTP requests
+requests==2.32.5

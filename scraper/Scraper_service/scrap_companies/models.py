@@ -9,7 +9,7 @@ class CompanyModel(BaseModel):
     founded: Optional[str] = None
     company_type: Optional[str] = None
     company_size: Optional[str] = None
-    url: Optional[HttpUrl] = None
+    url: Optional[str] = None
     last_updated: str= None
     
     @field_validator('Company')
