@@ -1,11 +1,9 @@
 import re
 from typing import List
 from datetime import datetime
-
-try:
-    from .models import CompanyModel
-except ImportError:
-    from models import CompanyModel
+from .models import CompanyModel
+from Scraper_service.core.db import Database
+DB = Database()
 
 def format_company_name(company_name: str) -> str:
     """
@@ -45,6 +43,42 @@ def get_company_names(sheet) -> set:
     except Exception as e:
         print(f"Error getting new company names: {e}")
         return set()
+
+def get_company_names_with_empty_url():
+    sql = """
+        SELECT name 
+        FROM company 
+        WHERE url IS NULL OR url = '';
+    """
+    rows = DB.query(sql)
+    return [row['name'] for row in rows]
+
+def update_company_table(companies_data):
+    for company in companies_data:
+        sql = """
+            INSERT INTO company (name, about_us, website, headquarters, founded, company_type, company_size, url, last_updated)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (name) DO UPDATE
+            SET about_us = EXCLUDED.about_us,
+                website = EXCLUDED.website,
+                headquarters = EXCLUDED.headquarters,
+                founded = EXCLUDED.founded,
+                company_type = EXCLUDED.company_type,
+                company_size = EXCLUDED.company_size,
+                url = EXCLUDED.url,
+                last_updated = EXCLUDED.last_updated;
+        """
+        DB.query(sql, (
+            company.Company,
+            company.about_us,
+            company.website,
+            company.headquarters,
+            company.founded,
+            company.company_type,
+            company.company_size,
+            company.url,
+            company.last_updated
+        ))  
 
 def validate_companies(companies_data, existing_names):
     """Validate companies data and filter duplicates based on company names"""
@@ -106,4 +140,15 @@ def upload_to_sheet(sheet, companies):
     except Exception as e:
         print(f"Upload failed: {e}")
         return False
-    
+
+def get_credentials():
+    sql = "SELECT * FROM linked_in_credentials WHERE is_blocked = FALSE ORDER BY last_used ASC, usage_count ASC LIMIT 1;"
+    row = DB.query(sql)
+
+    if not row:
+        return None 
+    return {
+        "email": row["email"],
+        "password": row["password"]
+    }
+
