@@ -67,3 +67,6 @@ def temp_job_main():
             print(f"Updating job record with nucleus_uid: {nucleus_uid}")
             insert_main_job_record(record, nucleus_uid)
 
+if __name__ == "__main__":
+    temp_job_main()
+

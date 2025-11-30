@@ -1,7 +1,7 @@
 import gspread
 from google.oauth2.service_account import Credentials
 
-SERVICE_ACCOUNT_FILE = "/Users/abhay/Documents/Learn/Learning/Credentials/ordinal-quarter-387322-7194228669a8.json"
+SERVICE_ACCOUNT_FILE = "/home/abhay/Desktop/Personal/Learning/Credentials/ordinal-quarter-387322-7194228669a8.json"
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",

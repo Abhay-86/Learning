@@ -10,6 +10,7 @@ CREATE TABLE nucleus (
     nucleus_uid TEXT NOT NULL UNIQUE,
     display_name VARCHAR(255) NOT NULL,
     variant TEXT[] DEFAULT '{}',
+    verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -33,8 +34,9 @@ CREATE TABLE job_scraper (
     company TEXT NOT NULL,
     location TEXT,
     job_type TEXT,
-    url TEXT NOT NULL UNIQUE,   -- 🔥 LinkedIn URL unique
+    url TEXT NOT NULL UNIQUE,  
     scraped_at TIMESTAMPTZ NOT NULL,
+    sync_backend BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -49,6 +51,7 @@ CREATE TABLE company (
     company_type VARCHAR(255),
     company_size VARCHAR(255),
     url TEXT,
+    sync_backend BOOLEAN DEFAULT FALSE, 
     last_updated TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -59,7 +62,7 @@ CREATE TABLE linked_in_credentials (
     email VARCHAR(255) NOT NULL UNIQUE,
     password TEXT NOT NULL, 
     is_blocked BOOLEAN DEFAULT FALSE, 
-    last_used TIMESTAMPTZ DEFAULT NULL, 
+    last_used TIMESTAMPTZ DEFAULT NOW(),
     usage_count INT DEFAULT 0, 
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
