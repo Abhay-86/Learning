@@ -54,6 +54,18 @@ CREATE TABLE company (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE linked_in_credentials (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password TEXT NOT NULL, 
+    is_blocked BOOLEAN DEFAULT FALSE, 
+    last_used TIMESTAMPTZ DEFAULT NULL, 
+    usage_count INT DEFAULT 0, 
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
 -- Indexes for performance
 CREATE INDEX idx_nucleus_name ON nucleus(name);
 CREATE INDEX idx_job_scraper_temp_company ON job_scraper_temp(company);
