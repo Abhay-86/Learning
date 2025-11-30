@@ -64,6 +64,11 @@ def update_nucleus_with_variants(nucleus_uid: int, variant_name: str):
              WHERE nucleus_uid = %s 
              RETURNING *;"""
     result = DB.execute(sql, (variant_name, updated_at(), nucleus_uid))
+    sql = """INSERT INTO company (name, nucleus_uid, created_at, updated_at) 
+             VALUES (%s, %s, %s, %s) 
+             RETURNING *;"""
+    DB.execute(sql, (variant_name, nucleus_uid, updated_at(), updated_at()))
+    print("✓ Inserted company.", result)
     return result
 
 def add_to_nucleus(name: str):

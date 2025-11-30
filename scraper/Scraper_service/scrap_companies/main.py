@@ -1,5 +1,6 @@
 from .scraper import get_companies
-from .utils import validate_companies, upload_to_sheet, get_company_names, update_company_table
+from .utils import validate_companies, upload_to_sheet, get_company_names_with_empty_url, update_company_table
+from Scraper_service.jobs.add_company import add_company
 from .google_sheets import get_sheet_by_number
 
 
@@ -9,13 +10,16 @@ def main():
 
     try:
         # Step 1: Get new company names from sheet #4
-        new_company_names = get_company_names()
+        new_company_names = get_company_names_with_empty_url()
 
         # Step 2: Scrape company information for unique new names
         print(f"Scraping {len(new_company_names)} companies...")
         companies_data = get_companies(new_company_names)
 
-        # Step 3: Update the company table
+        # Step 3: Get the nucleus id
+        nucleus_id = get_nucleus_id(new_company_names)
+
+        # Step 4: Update the company table
         update_company_table(companies_data)
 
         print("✓ Successfully updated company table!")

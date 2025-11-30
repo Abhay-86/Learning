@@ -53,23 +53,35 @@ def get_company_names_with_empty_url():
     rows = DB.query(sql)
     return [row['name'] for row in rows]
 
+def get_nucleus_id(company_names):
+    sql = """
+        SELECT nucleus_uid 
+        FROM company 
+        WHERE name IN %s;
+    """
+    rows = DB.query(sql, (tuple(company_names),))
+    return [row['nucleus_uid'] for row in rows]
+
 def update_company_table(companies_data):
+    db = Database()
+
+    sql = """
+        UPDATE company
+        SET 
+            about_us = %s,
+            website = %s,
+            headquarters = %s,
+            founded = %s,
+            company_type = %s,
+            company_size = %s,
+            url = %s,
+            last_updated = %s,
+            updated_at = NOW()
+        WHERE name = %s;
+    """
+
     for company in companies_data:
-        sql = """
-            INSERT INTO company (name, about_us, website, headquarters, founded, company_type, company_size, url, last_updated)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (name) DO UPDATE
-            SET about_us = EXCLUDED.about_us,
-                website = EXCLUDED.website,
-                headquarters = EXCLUDED.headquarters,
-                founded = EXCLUDED.founded,
-                company_type = EXCLUDED.company_type,
-                company_size = EXCLUDED.company_size,
-                url = EXCLUDED.url,
-                last_updated = EXCLUDED.last_updated;
-        """
-        DB.query(sql, (
-            company.Company,
+        db.execute(sql, (
             company.about_us,
             company.website,
             company.headquarters,
@@ -77,8 +89,8 @@ def update_company_table(companies_data):
             company.company_type,
             company.company_size,
             company.url,
-            company.last_updated
-        ))  
+            company.last_updated,
+        ))
 
 def validate_companies(companies_data, existing_names):
     """Validate companies data and filter duplicates based on company names"""
