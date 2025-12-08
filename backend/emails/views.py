@@ -12,7 +12,7 @@ from google.oauth2.service_account import Credentials
 # Google Sheets config
 SERVICE_ACCOUNT_FILE = "/Users/abhay/Documents/Learn/Learning/Credentials/ordinal-quarter-387322-7194228669a8.json"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-SHEET_NAME = "HR Sheet"
+SHEET_NAME = "Linkedin"
 
 # --- Single Email Endpoint ---
 @extend_schema(
@@ -84,6 +84,13 @@ class BulkSendEmailView(APIView):
             subject = row.get("subject", "Hello")
             name = row.get("name", "Team")
 
+            cc = row.get("cc", "")  # NEW
+            bcc = row.get("bcc", "")  # NEW
+
+            # Convert empty string to None or list
+            cc_list = [cc.strip()] if cc else []
+            bcc_list = [bcc.strip()] if bcc else []
+
             # Skip row if required fields are missing
             if not email or not template_name:
                 print(f"[⚠️] Skipping invalid row: {row}")
@@ -96,7 +103,16 @@ class BulkSendEmailView(APIView):
                 continue
 
             # Send email
-            send_templated_email(subject, email, template_name, context, attachment_no)
+            # send_templated_email(subject, email, template_name, context, attachment_no)
+            send_templated_email(
+                subject=subject,
+                recipient=email,
+                template_name=template_name,
+                context=context,
+                attachment_no=attachment_no,
+                cc=cc_list,
+                bcc=bcc_list,
+            )
 
             # Log email as sent
             BulkEmailLog.objects.update_or_create(
