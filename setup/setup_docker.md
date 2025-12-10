@@ -91,5 +91,11 @@ docker compose version
 ```
 Docker Compose version v2.40.3
 ```
+---
+Very important this is Ip for machine on which docker is running(this Give IP of host machine)
+---
+```bash
+http://host.docker.internal
+```
 
 ---
