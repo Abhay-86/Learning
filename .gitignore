@@ -38,4 +38,6 @@ media/
 /Credentials
 
 backend/emails/templates/emails
+miniIO-S3/data
+queue/data
 
